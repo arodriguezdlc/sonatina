@@ -4,14 +4,9 @@ import (
 	"github.com/spf13/afero"
 )
 
-// Deployment representation
 type Deployment interface {
-	//Add()
-	//List()
-	//Delete()
 }
 
-// DeploymentImpl implements Deployment interface
 type DeploymentImpl struct {
 	Name  string
 	State State
@@ -22,17 +17,22 @@ type DeploymentImpl struct {
 	workingDirectory*/
 }
 
-// NewDeploymentImpl creates and initializes a new DeploymentImpl object
-func NewDeploymentImpl(name string, repoURL string, fs afero.Fs, deploymentPath string) (Deployment, error) {
+// NewDeployment creates and initializes a new Deployment object
+func NewDeploymentImpl(name string, storageRepoURL string, codeRepoURL string, fs afero.Fs, deploymentPath string) (Deployment, error) {
 	var err error
 	var vars Vars
 	var state State
 
-	if vars, err = NewVarsGit(fs, deploymentPath+"/variables", repoURL); err != nil {
+	//Create deployment directory
+	if err = fs.MkdirAll(deploymentPath, 0700); err != nil {
 		return nil, err
 	}
 
-	if state, err = NewStateGit(fs, deploymentPath+"/state", repoURL); err != nil {
+	if vars, err = NewVarsGit(fs, deploymentPath+"/variables", storageRepoURL); err != nil {
+		return nil, err
+	}
+
+	if state, err = NewStateGit(fs, deploymentPath+"/state", storageRepoURL); err != nil {
 		return nil, err
 	}
 

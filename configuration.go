@@ -11,6 +11,7 @@ func init() {
 }
 
 func setDefaultConfig() {
+	viper.SetDefault("LogLevel", "debug")
 	viper.SetDefault("DeploymentsPath", "~/.sonatina/deployments")
 	viper.SetDefault("DeploymentsFilename", "deployments.yml")
 	viper.SetDefault("ManagerConnector", "yaml")
@@ -18,10 +19,11 @@ func setDefaultConfig() {
 }
 
 func setEnvVariables() {
+	viper.SetEnvPrefix("SONATINA_")
 }
 
 func setConfigFile() {
 	viper.SetConfigName("config")
-	viper.AddConfigPath("$HOME/.sonatina")
+	viper.AddConfigPath("~/.sonatina")
 	viper.AddConfigPath("/etc/sonatina")
 }

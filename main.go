@@ -18,12 +18,14 @@ package main
 import (
 	"github.com/arodriguezdlc/sonatina/cmd"
 	"github.com/arodriguezdlc/sonatina/manager"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
 func main() {
+
+	setLogLevel(viper.GetString("LogLevel"))
 
 	var fs afero.Fs
 	if viper.GetBool("TestFilesystem") {
@@ -34,8 +36,27 @@ func main() {
 
 	err := manager.InitializeManager(fs)
 	if err != nil {
-		log.Fatalln(err)
+		logrus.Fatalln(err)
 	}
 
 	cmd.Execute()
+}
+
+func setLogLevel(level string) {
+	switch level {
+	case "fatal":
+		logrus.SetLevel(logrus.FatalLevel)
+	case "error":
+		logrus.SetLevel(logrus.ErrorLevel)
+	case "warning":
+		logrus.SetLevel(logrus.WarnLevel)
+	case "info":
+		logrus.SetLevel(logrus.InfoLevel)
+	case "debug":
+		logrus.SetLevel(logrus.DebugLevel)
+	default:
+		logrus.Fatalln("Unrecognized LogLevel: " + level)
+	}
+
+	logrus.Debugln("LogLevel: " + level)
 }

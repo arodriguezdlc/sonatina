@@ -10,22 +10,21 @@ import (
 
 	"github.com/arodriguezdlc/sonatina/deployment"
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
 // ManagerYaml manages deployments saving metadata on YAML file
 type ManagerYaml struct {
-	Fs       afero.Fs
-	FilePath string
+	Fs              afero.Fs
+	FilePath        string
+	DeploymentsPath string
 }
 
-type DeploymentItem struct {
+type deploymentItem struct {
 	StorageRepoURI string `yaml:"storage_repo_uri"`
 	CodeRepoURI    string `yaml:"code_repo_uri"`
 }
-
-type DeploymentMap map[string]DeploymentItem
+type deploymentMap map[string]deploymentItem
 
 // NewManagerYaml creates and initializes a new ManagerYaml object
 func NewManagerYaml(fs afero.Fs, deploymentsPath string, deploymentsFilename string) (ManagerYaml, error) {
@@ -39,7 +38,7 @@ func NewManagerYaml(fs afero.Fs, deploymentsPath string, deploymentsFilename str
 		return manager, err
 	}
 
-	if err = fs.MkdirAll(path, 0755); err != nil {
+	if err = fs.MkdirAll(path, 0700); err != nil {
 		return manager, err
 	}
 
@@ -51,8 +50,9 @@ func NewManagerYaml(fs afero.Fs, deploymentsPath string, deploymentsFilename str
 	}
 
 	manager = ManagerYaml{
-		Fs:       fs,
-		FilePath: filepath,
+		Fs:              fs,
+		FilePath:        filepath,
+		DeploymentsPath: path,
 	}
 
 	return manager, err
@@ -60,7 +60,7 @@ func NewManagerYaml(fs afero.Fs, deploymentsPath string, deploymentsFilename str
 
 // List returns a string slice with deployment names
 func (m ManagerYaml) List() ([]string, error) {
-	var d DeploymentMap
+	var d deploymentMap
 	var err error
 
 	if d, err = m.read(); err != nil {
@@ -77,8 +77,8 @@ func (m ManagerYaml) List() ([]string, error) {
 
 // Get instantiates and returns a Deployment object with the specified name
 func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
-	var dm DeploymentMap
-	var di DeploymentItem
+	var dm deploymentMap
+	var di deploymentItem
 	var deploy deployment.Deployment
 	var err error
 	var ok bool
@@ -94,8 +94,9 @@ func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
 	deploy, err = deployment.NewDeploymentImpl(
 		name,
 		di.StorageRepoURI,
+		di.CodeRepoURI,
 		m.Fs,
-		viper.GetString("DeploymentsPath"))
+		m.DeploymentsPath+"/"+name)
 	if err != nil {
 		return nil, err
 	}
@@ -103,10 +104,37 @@ func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
 	return deploy, nil
 }
 
-// Create instantiates a new Deployment object and returns it
-func (m ManagerYaml) Create(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error) {
+// Add instantiates a new Deployment object and returns it
+func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error) {
+	var dm deploymentMap
+	var di deploymentItem
+	var deploy deployment.Deployment
+	var err error
+	var ok bool
 
-	return deployment.DeploymentImpl{}, nil
+	if dm, err = m.read(); err != nil {
+		return nil, err
+	}
+
+	if _, ok = dm[name]; ok {
+		return nil, DeploymentAlreadyExistsError{name}
+	}
+
+	if deploy, err = deployment.NewDeploymentImpl(name, storageRepoURI, codeRepoURI, m.Fs, m.DeploymentsPath+"/"+name); err != nil {
+		return nil, err
+	}
+
+	di = deploymentItem{
+		StorageRepoURI: storageRepoURI,
+		CodeRepoURI:    codeRepoURI,
+	}
+	m.add(name, di, &dm)
+
+	if err = m.save(dm); err != nil {
+		return nil, err
+	}
+
+	return deploy, nil
 }
 
 // Delete removes the deployment from the list
@@ -115,31 +143,63 @@ func (m ManagerYaml) Delete(name string) error {
 	return nil
 }
 
-func (m ManagerYaml) read() (DeploymentMap, error) {
-	var d DeploymentMap
+func (m ManagerYaml) get(name string) (deploymentMap, error) {
+	var (
+		result  deploymentMap
+		deploys deploymentMap
+		item    deploymentItem
+		err     error
+		ok      bool
+	)
+
+	if deploys, err = m.read(); err != nil {
+		return nil, err
+	}
+
+	if item, ok = deploys[name]; !ok {
+		return nil, errors.New("Deployment doesn't exist")
+	}
+
+	result[name] = item
+	return result, err
+}
+
+func (m ManagerYaml) add(name string, di deploymentItem, dm *deploymentMap) {
+	if len(*dm) < 1 {
+		*dm = deploymentMap{name: di}
+	} else {
+		(*dm)[name] = di
+	}
+}
+
+func (m ManagerYaml) read() (deploymentMap, error) {
+	var d deploymentMap
+
 	data, err := afero.ReadFile(m.Fs, m.FilePath)
 	if err != nil {
-		log.Errorln(err)
-	} else {
-		err = yaml.Unmarshal(data, &d)
-		if err != nil {
-			log.Errorln(err)
-		} else {
-			log.Debugln(d)
-		}
+		return d, err
 	}
+
+	err = yaml.Unmarshal(data, &d)
+	if err != nil {
+		log.Errorln(err)
+	}
+
 	return d, err
 }
 
-func (m ManagerYaml) save(d DeploymentMap) {
+func (m ManagerYaml) save(d deploymentMap) error {
 	data, err := yaml.Marshal(d)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
+
 	err = afero.WriteFile(m.Fs, m.FilePath, data, 0644)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
+
+	return nil
 }
 
-// TO DO: Check that readed DeploymentMap is correct
+// TODO: Check that readed DeploymentMap is correct

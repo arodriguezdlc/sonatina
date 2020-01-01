@@ -13,7 +13,7 @@ import (
 type ManagerInterface interface {
 	List() ([]string, error)
 	Get(name string) (deployment.Deployment, error)
-	Create(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error)
+	Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error)
 	Delete(name string) error
 }
 
@@ -23,6 +23,8 @@ var manager ManagerInterface
 func init() {
 }
 
+// InitializeManager creates a deployment manager object and saves it
+// in the manager global variable
 func InitializeManager(fs afero.Fs) error {
 	connector := viper.GetString("ManagerConnector")
 	var err error
@@ -37,6 +39,8 @@ func InitializeManager(fs afero.Fs) error {
 	}
 }
 
+// GetManager returns the manager global variable, that was initialized by
+// InitializeManager function
 func GetManager() ManagerInterface {
 	return manager
 }

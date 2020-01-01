@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/arodriguezdlc/sonatina.svg?branch=master)](https://travis-ci.org/arodriguezdlc/sonatina)
+
 # Sonatina
 
 Sonatina is an infrastructure as code framework based on Terraform, that adds some useful functionality to organize and work with terraform modules and variables in an opinionated way.

@@ -1,7 +1,9 @@
 package deployment
 
 import (
+	"github.com/arodriguezdlc/sonatina/utils"
 	"github.com/spf13/afero"
+	"gopkg.in/src-d/go-git.v4"
 )
 
 // StateGit implements State interface
@@ -13,6 +15,22 @@ type StateGit struct {
 
 // NewStateGit creates and initializes a new ManagerYaml object
 func NewStateGit(fs afero.Fs, path string, repoURL string) (State, error) {
+	var err error
+
+	storer, workdir, err := utils.GitFs(fs, path)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = git.Clone(storer, workdir, &git.CloneOptions{
+		URL:           repoURL,
+		ReferenceName: "refs/heads/state",
+		SingleBranch:  true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return StateGit{
 		fs:      fs,
 		path:    path,
