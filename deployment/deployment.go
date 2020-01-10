@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 )
 
@@ -17,7 +18,7 @@ type DeploymentImpl struct {
 	workingDirectory*/
 }
 
-// NewDeployment creates and initializes a new Deployment object
+// NewDeploymentImpl creates and initializes a new Deployment object
 func NewDeploymentImpl(name string, storageRepoURL string, codeRepoURL string, fs afero.Fs, deploymentPath string) (Deployment, error) {
 	var err error
 	var vars Vars
@@ -29,10 +30,12 @@ func NewDeploymentImpl(name string, storageRepoURL string, codeRepoURL string, f
 	}
 
 	if vars, err = NewVarsGit(fs, deploymentPath+"/variables", storageRepoURL); err != nil {
+		rollbackNewDeployment(fs, deploymentPath)
 		return nil, err
 	}
 
 	if state, err = NewStateGit(fs, deploymentPath+"/state", storageRepoURL); err != nil {
+		rollbackNewDeployment(fs, deploymentPath)
 		return nil, err
 	}
 
@@ -41,4 +44,11 @@ func NewDeploymentImpl(name string, storageRepoURL string, codeRepoURL string, f
 		Vars:  vars,
 		State: state,
 	}, nil
+}
+
+func rollbackNewDeployment(fs afero.Fs, deploymentPath string) {
+	logrus.Debugln("rollbackNewDeployment deleting " + deploymentPath)
+	if err := fs.RemoveAll(deploymentPath); err != nil {
+		logrus.Errorln("Can't execute rollback for NewDeploymentImplementation") //TODO: improve error message
+	}
 }
