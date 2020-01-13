@@ -3,7 +3,6 @@ package deployment
 import (
 	"github.com/arodriguezdlc/sonatina/utils"
 	"github.com/spf13/afero"
-	"gopkg.in/src-d/go-git.v4"
 )
 
 // VarsGit implements Vars interface
@@ -15,18 +14,7 @@ type VarsGit struct {
 
 // NewVarsGit creates and initializes a new VarsGit object
 func NewVarsGit(fs afero.Fs, path string, repoURL string) (Vars, error) {
-	var err error
-
-	storer, workdir, err := utils.GitFs(fs, path)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = git.Clone(storer, workdir, &git.CloneOptions{
-		URL:           repoURL,
-		ReferenceName: "refs/heads/variables",
-		SingleBranch:  true,
-	})
+	err := utils.GitCloneOrInit(fs, path, repoURL, "variables")
 	if err != nil {
 		return nil, err
 	}
