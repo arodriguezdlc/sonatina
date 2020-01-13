@@ -157,7 +157,7 @@ func (m ManagerYaml) get(name string) (deploymentMap, error) {
 	}
 
 	if item, ok = deploys[name]; !ok {
-		return nil, errors.New("Deployment doesn't exist")
+		return nil, errors.New("Deployment doesn't exist") // TODO: use a new defined error
 	}
 
 	result[name] = item

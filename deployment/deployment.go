@@ -5,9 +5,12 @@ import (
 	"github.com/spf13/afero"
 )
 
+//Deployment object contains all information about a deployment
+// TODO: improve explanation and interface definition
 type Deployment interface {
 }
 
+// DeploymentImpl implements Deployment interface
 type DeploymentImpl struct {
 	Name  string
 	State State
