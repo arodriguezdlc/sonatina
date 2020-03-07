@@ -4,5 +4,4 @@ package deployment
 type Vars interface {
 	Path() string
 	Save()
-	Load()
 }

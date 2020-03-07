@@ -3,9 +3,8 @@ package manager
 import (
 	"errors"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/arodriguezdlc/sonatina/deployment"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
@@ -30,7 +29,7 @@ func InitializeManager(fs afero.Fs) error {
 	var err error
 	switch connector {
 	case "yaml":
-		log.Infoln("Initialize YAML based Manager")
+		logrus.Infoln("Initialize YAML based Manager")
 		manager, err = NewManagerYaml(fs, viper.GetString("DeploymentsPath"), viper.GetString("DeploymentsFilename"))
 		return err
 	default:

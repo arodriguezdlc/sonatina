@@ -54,6 +54,7 @@ func setLogLevel(level string) {
 		logrus.SetLevel(logrus.InfoLevel)
 	case "debug":
 		logrus.SetLevel(logrus.DebugLevel)
+		//logrus.SetReportCaller(true)
 	default:
 		logrus.Fatalln("Unrecognized LogLevel: " + level)
 	}

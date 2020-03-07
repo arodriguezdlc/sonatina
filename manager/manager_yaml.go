@@ -1,12 +1,10 @@
 package manager
 
 import (
-	"errors"
-
 	"github.com/arodriguezdlc/sonatina/utils"
 
 	"github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/arodriguezdlc/sonatina/deployment"
 	"github.com/spf13/afero"
@@ -75,7 +73,8 @@ func (m ManagerYaml) List() ([]string, error) {
 	return keys, nil
 }
 
-// Get instantiates and returns a Deployment object with the specified name
+// Get instantiates and returns a Deployment object with the specified name, that have been
+// added previously
 func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
 	var dm deploymentMap
 	var di deploymentItem
@@ -88,10 +87,10 @@ func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
 	}
 
 	if di, ok = dm[name]; !ok {
-		return nil, errors.New("Can't find deployment with name [" + name + "]")
+		return nil, DeploymentDoNotExistsError{name}
 	}
 
-	deploy, err = deployment.NewDeploymentImpl(
+	deploy, err = deployment.NewDeployment(
 		name,
 		di.StorageRepoURI,
 		di.CodeRepoURI,
@@ -120,7 +119,7 @@ func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string)
 		return nil, DeploymentAlreadyExistsError{name}
 	}
 
-	if deploy, err = deployment.NewDeploymentImpl(name, storageRepoURI, codeRepoURI, m.Fs, m.DeploymentsPath+"/"+name); err != nil {
+	if deploy, err = deployment.NewDeployment(name, storageRepoURI, codeRepoURI, m.Fs, m.DeploymentsPath+"/"+name); err != nil {
 		return nil, err
 	}
 
@@ -129,7 +128,6 @@ func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string)
 		CodeRepoURI:    codeRepoURI,
 	}
 	m.add(name, di, &dm)
-
 	if err = m.save(dm); err != nil {
 		return nil, err
 	}
@@ -139,8 +137,29 @@ func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string)
 
 // Delete removes the deployment from the list
 func (m ManagerYaml) Delete(name string) error {
-	log.Infoln("Delete " + name + " deployment")
-	return nil
+	logrus.Infoln("Delete " + name + " deployment")
+
+	deploy, err := m.Get(name)
+	if err != nil {
+		return err
+	}
+
+	if err = deploy.Purge(); err != nil {
+		return err
+	}
+
+	err = m.delete(name)
+	return err
+}
+
+func (m ManagerYaml) exist(name string) (bool, error) {
+	deploys, err := m.read()
+	if err != nil {
+		return false, err
+	}
+
+	_, ok := deploys[name]
+	return ok, err
 }
 
 func (m ManagerYaml) get(name string) (deploymentMap, error) {
@@ -157,11 +176,24 @@ func (m ManagerYaml) get(name string) (deploymentMap, error) {
 	}
 
 	if item, ok = deploys[name]; !ok {
-		return nil, errors.New("Deployment doesn't exist") // TODO: use a new defined error
+		return nil, DeploymentDoNotExistsError{name}
 	}
 
 	result[name] = item
 	return result, err
+}
+
+func (m ManagerYaml) delete(name string) error {
+	deploys, err := m.read()
+	if err != nil {
+		return err
+	}
+
+	if _, ok := deploys[name]; !ok {
+		return DeploymentDoNotExistsError{name}
+	}
+	delete(deploys, name)
+	return m.save(deploys)
 }
 
 func (m ManagerYaml) add(name string, di deploymentItem, dm *deploymentMap) {
@@ -182,7 +214,7 @@ func (m ManagerYaml) read() (deploymentMap, error) {
 
 	err = yaml.Unmarshal(data, &d)
 	if err != nil {
-		log.Errorln(err)
+		logrus.Errorln(err)
 	}
 
 	return d, err
@@ -203,3 +235,5 @@ func (m ManagerYaml) save(d deploymentMap) error {
 }
 
 // TODO: Check that readed DeploymentMap is correct
+
+// TODO: some functions have to read yaml more than once. It could be optimized

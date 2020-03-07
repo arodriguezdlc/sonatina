@@ -1,17 +1,18 @@
 package operation
 
 import (
+	"github.com/arodriguezdlc/sonatina/cmd/deploymentcmd"
 	"github.com/spf13/cobra"
 )
 
 // Delete declares `sonatina delete` command
 var Delete = &cobra.Command{
 	Use:   "delete",
-	Short: "d",
-	Long:  "delete resources",
+	Short: "delete",
+	Long:  "delete",
 	//Run:   util.Help,
 }
 
 func init() {
-	//createCmd.AddCommand(api.CreateCmd)
+	Delete.AddCommand(deploymentcmd.DeleteDeployment)
 }

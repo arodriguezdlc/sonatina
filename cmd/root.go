@@ -49,6 +49,7 @@ func init() {
 	// Register CRUD subcommands
 	rootCmd.AddCommand(operation.Add)
 	rootCmd.AddCommand(operation.List)
+	rootCmd.AddCommand(operation.Delete)
 }
 
 // initConfig reads in config file and ENV variables if set.
