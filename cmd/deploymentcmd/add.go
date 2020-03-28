@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/arodriguezdlc/sonatina/manager"
+	"github.com/sirupsen/logrus"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ func addDeploymentExecution(cmd *cobra.Command, args []string) {
 	m := manager.GetManager()
 
 	if _, err = m.Add(deployName, storageRepoURI, codeRepoURI); err != nil {
-		log.Fatalln(err)
+		logrus.Fatalln(err)
 	}
 
 	fmt.Println("Created")

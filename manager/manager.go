@@ -1,26 +1,24 @@
 package manager
 
 import (
-	"errors"
-
 	"github.com/arodriguezdlc/sonatina/deployment"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
-type ManagerInterface interface {
+// Manager interface that provides methods to manage differents
+// deployments.
+type Manager interface {
 	List() ([]string, error)
 	Get(name string) (deployment.Deployment, error)
 	Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error)
 	Delete(name string) error
 }
 
-var manager ManagerInterface
-
-// Uses manager from configuration
-func init() {
-}
+// Single manager on sonatina execution. It's initialized at program start,
+// then can be retrieved using GetManager method.
+var manager Manager
 
 // InitializeManager creates a deployment manager object and saves it
 // in the manager global variable
@@ -28,18 +26,18 @@ func InitializeManager(fs afero.Fs) error {
 	connector := viper.GetString("ManagerConnector")
 	var err error
 	switch connector {
-	case "yaml":
-		logrus.Infoln("Initialize YAML based Manager")
-		manager, err = NewManagerYaml(fs, viper.GetString("DeploymentsPath"), viper.GetString("DeploymentsFilename"))
+	case "json":
+		logrus.Infoln("Initialize JSON based Manager")
+		manager, err = newManagerJSON(fs, viper.GetString("DeploymentsPath"), viper.GetString("DeploymentsFilename"))
 		return err
 	default:
 		manager = nil
-		return errors.New("Unsupported manager connector [" + connector + "]")
+		return ManagerUnsupportedConnectorError{connector}
 	}
 }
 
 // GetManager returns the manager global variable, that was initialized by
 // InitializeManager function
-func GetManager() ManagerInterface {
+func GetManager() Manager {
 	return manager
 }

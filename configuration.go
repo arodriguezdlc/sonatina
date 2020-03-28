@@ -13,8 +13,8 @@ func init() {
 func setDefaultConfig() {
 	viper.SetDefault("LogLevel", "debug")
 	viper.SetDefault("DeploymentsPath", "~/.sonatina/deployments")
-	viper.SetDefault("DeploymentsFilename", "deployments.yml")
-	viper.SetDefault("ManagerConnector", "yaml")
+	viper.SetDefault("DeploymentsFilename", "deployments.json")
+	viper.SetDefault("ManagerConnector", "json")
 	viper.SetDefault("TestFilesystem", false)
 }
 

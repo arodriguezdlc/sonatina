@@ -1,6 +1,8 @@
 package manager
 
 import (
+	"encoding/json"
+
 	"github.com/arodriguezdlc/sonatina/utils"
 
 	"github.com/mitchellh/go-homedir"
@@ -8,56 +10,52 @@ import (
 
 	"github.com/arodriguezdlc/sonatina/deployment"
 	"github.com/spf13/afero"
-	"gopkg.in/yaml.v2"
 )
 
-// ManagerYaml manages deployments saving metadata on YAML file
-type ManagerYaml struct {
-	Fs              afero.Fs
-	FilePath        string
-	DeploymentsPath string
+// managerJSON manages deployments saving metadata on JSON file
+type managerJSON struct {
+	fs              afero.Fs
+	filePath        string
+	deploymentsPath string
 }
 
 type deploymentItem struct {
-	StorageRepoURI string `yaml:"storage_repo_uri"`
-	CodeRepoURI    string `yaml:"code_repo_uri"`
+	StorageRepoURI string `json:"storage_repo_uri"`
+	CodeRepoURI    string `json:"code_repo_uri"`
 }
 type deploymentMap map[string]deploymentItem
 
-// NewManagerYaml creates and initializes a new ManagerYaml object
-func NewManagerYaml(fs afero.Fs, deploymentsPath string, deploymentsFilename string) (ManagerYaml, error) {
-	var manager ManagerYaml
-	var err error
-	var path string
-	var filepath string
-
+// newManagerJSON creates and initializes a new ManagerJSON object
+func newManagerJSON(fs afero.Fs, deploymentsPath string, deploymentsFilename string) (Manager, error) {
 	//Initialize deployments directory
-	if path, err = homedir.Expand(deploymentsPath); err != nil {
-		return manager, err
+	path, err := homedir.Expand(deploymentsPath)
+	if err != nil {
+		return nil, err
 	}
 
-	if err = fs.MkdirAll(path, 0700); err != nil {
-		return manager, err
+	err = fs.MkdirAll(path, 0700)
+	if err != nil {
+		return nil, err
 	}
 
-	filepath = path + "/" + deploymentsFilename
+	filepath := path + "/" + deploymentsFilename
+
+	manager = &managerJSON{
+		fs:              fs,
+		filePath:        filepath,
+		deploymentsPath: path,
+	}
 
 	// Create file if doesn't exist
-	if err = utils.NewFileIfNotExist(filepath, fs); err != nil {
-		return manager, err
-	}
-
-	manager = ManagerYaml{
-		Fs:              fs,
-		FilePath:        filepath,
-		DeploymentsPath: path,
+	if err = utils.NewFileWithContentIfNotExist(fs, filepath, "{}"); err != nil {
+		return nil, err
 	}
 
 	return manager, err
 }
 
 // List returns a string slice with deployment names
-func (m ManagerYaml) List() ([]string, error) {
+func (m *managerJSON) List() ([]string, error) {
 	var d deploymentMap
 	var err error
 
@@ -75,7 +73,7 @@ func (m ManagerYaml) List() ([]string, error) {
 
 // Get instantiates and returns a Deployment object with the specified name, that have been
 // added previously
-func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
+func (m *managerJSON) Get(name string) (deployment.Deployment, error) {
 	var dm deploymentMap
 	var di deploymentItem
 	var deploy deployment.Deployment
@@ -94,8 +92,8 @@ func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
 		name,
 		di.StorageRepoURI,
 		di.CodeRepoURI,
-		m.Fs,
-		m.DeploymentsPath+"/"+name)
+		m.fs,
+		m.deploymentsPath+"/"+name)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +102,7 @@ func (m ManagerYaml) Get(name string) (deployment.Deployment, error) {
 }
 
 // Add instantiates a new Deployment object and returns it
-func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error) {
+func (m *managerJSON) Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error) {
 	var dm deploymentMap
 	var di deploymentItem
 	var deploy deployment.Deployment
@@ -119,7 +117,7 @@ func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string)
 		return nil, DeploymentAlreadyExistsError{name}
 	}
 
-	if deploy, err = deployment.NewDeployment(name, storageRepoURI, codeRepoURI, m.Fs, m.DeploymentsPath+"/"+name); err != nil {
+	if deploy, err = deployment.NewDeployment(name, storageRepoURI, codeRepoURI, m.fs, m.deploymentsPath+"/"+name); err != nil {
 		return nil, err
 	}
 
@@ -136,7 +134,7 @@ func (m ManagerYaml) Add(name string, storageRepoURI string, codeRepoURI string)
 }
 
 // Delete removes the deployment from the list
-func (m ManagerYaml) Delete(name string) error {
+func (m *managerJSON) Delete(name string) error {
 	logrus.Infoln("Delete " + name + " deployment")
 
 	deploy, err := m.Get(name)
@@ -152,7 +150,7 @@ func (m ManagerYaml) Delete(name string) error {
 	return err
 }
 
-func (m ManagerYaml) exist(name string) (bool, error) {
+func (m *managerJSON) exist(name string) (bool, error) {
 	deploys, err := m.read()
 	if err != nil {
 		return false, err
@@ -162,7 +160,7 @@ func (m ManagerYaml) exist(name string) (bool, error) {
 	return ok, err
 }
 
-func (m ManagerYaml) get(name string) (deploymentMap, error) {
+func (m *managerJSON) get(name string) (deploymentMap, error) {
 	var (
 		result  deploymentMap
 		deploys deploymentMap
@@ -183,7 +181,7 @@ func (m ManagerYaml) get(name string) (deploymentMap, error) {
 	return result, err
 }
 
-func (m ManagerYaml) delete(name string) error {
+func (m *managerJSON) delete(name string) error {
 	deploys, err := m.read()
 	if err != nil {
 		return err
@@ -196,7 +194,7 @@ func (m ManagerYaml) delete(name string) error {
 	return m.save(deploys)
 }
 
-func (m ManagerYaml) add(name string, di deploymentItem, dm *deploymentMap) {
+func (m *managerJSON) add(name string, di deploymentItem, dm *deploymentMap) {
 	if len(*dm) < 1 {
 		*dm = deploymentMap{name: di}
 	} else {
@@ -204,15 +202,15 @@ func (m ManagerYaml) add(name string, di deploymentItem, dm *deploymentMap) {
 	}
 }
 
-func (m ManagerYaml) read() (deploymentMap, error) {
+func (m *managerJSON) read() (deploymentMap, error) {
 	var d deploymentMap
 
-	data, err := afero.ReadFile(m.Fs, m.FilePath)
+	data, err := afero.ReadFile(m.fs, m.filePath)
 	if err != nil {
 		return d, err
 	}
 
-	err = yaml.Unmarshal(data, &d)
+	err = json.Unmarshal(data, &d)
 	if err != nil {
 		logrus.Errorln(err)
 	}
@@ -220,13 +218,13 @@ func (m ManagerYaml) read() (deploymentMap, error) {
 	return d, err
 }
 
-func (m ManagerYaml) save(d deploymentMap) error {
-	data, err := yaml.Marshal(d)
+func (m *managerJSON) save(d deploymentMap) error {
+	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	err = afero.WriteFile(m.Fs, m.FilePath, data, 0644)
+	err = afero.WriteFile(m.fs, m.filePath, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -236,4 +234,4 @@ func (m ManagerYaml) save(d deploymentMap) error {
 
 // TODO: Check that readed DeploymentMap is correct
 
-// TODO: some functions have to read yaml more than once. It could be optimized
+// TODO: some functions have to read json more than once. It could be optimized

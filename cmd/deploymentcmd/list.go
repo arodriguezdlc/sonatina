@@ -1,12 +1,12 @@
 package deploymentcmd
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/olekukonko/tablewriter"
+	"github.com/sirupsen/logrus"
 
 	"github.com/arodriguezdlc/sonatina/manager"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -27,15 +27,11 @@ func listDeploymentExecution(cmd *cobra.Command, args []string) {
 	list, err := m.List()
 
 	if err != nil {
-		log.Fatalln(err)
+		logrus.Fatalln(err)
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Deployments"})
+	fmt.Fprintln(os.Stdout, "DEPLOYMENTS:")
 	for _, element := range list {
-		var aux []string
-		aux = append(aux, element)
-		table.Append(aux)
+		fmt.Fprintln(os.Stdout, element)
 	}
-	table.Render()
 }
