@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/arodriguezdlc/sonatina.svg?branch=master)](https://travis-ci.org/arodriguezdlc/sonatina)
+![Go](https://github.com/arodriguezdlc/sonatina/workflows/Go/badge.svg)
+[![codecov](https://codecov.io/gh/arodriguezdlc/sonatina/branch/master/graph/badge.svg)](https://codecov.io/gh/arodriguezdlc/sonatina)
 
 # Sonatina
 
