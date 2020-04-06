@@ -12,7 +12,7 @@ type CTD struct {
 
 	main    main
 	modules modules
-	vtd     vtd
+	vtd     VTD
 }
 
 type main struct {
@@ -21,11 +21,6 @@ type main struct {
 }
 
 type modules struct {
-	fs   afero.Fs
-	path string
-}
-
-type vtd struct {
 	fs   afero.Fs
 	path string
 }
@@ -47,7 +42,7 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) (CTD, err
 			fs:   fs,
 			path: path + "modules",
 		},
-		vtd: vtd{
+		vtd: VTD{
 			fs:   fs,
 			path: path + "vtd",
 		},
@@ -55,12 +50,17 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) (CTD, err
 	return ctd, nil
 }
 
-// ListMainFilesGlobal returns all TF files from the global main folder
-func (ctd *CTD) ListMainFilesGlobal() ([]string, error) {
+// ListMainGlobalFiles returns all TF files from the global main folder
+func (ctd *CTD) ListMainGlobalFiles() ([]string, error) {
 	return afero.Glob(ctd.main.fs, ctd.main.path+"/global/*.tf")
 }
 
-// ListMainFilesUser returns all TF files from the user main folder
-func (ctd *CTD) ListMainFilesUser(user string) ([]string, error) {
+// ListMainUserFiles returns all TF files from the user main folder
+func (ctd *CTD) ListMainUserFiles(user string) ([]string, error) {
 	return afero.Glob(ctd.main.fs, ctd.main.path+"/user/"+user+"/*.tf")
+}
+
+func (ctd *CTD) ListModules() ([]string, error) {
+	// TODO: modules could be obtained from other repos
+	return afero.Glob(ctd.modules.fs, ctd.modules.path+"/*")
 }

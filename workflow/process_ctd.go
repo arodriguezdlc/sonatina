@@ -16,7 +16,8 @@ func (p *ProcessCTD) Run() {
 }
 
 func (p *ProcessCTD) generateMainFileList() {
-
+	// Pseudo-code:
+	// main + plugin
 }
 
 func (p *ProcessCTD) generateModuleList() {

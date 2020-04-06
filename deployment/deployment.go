@@ -24,6 +24,8 @@ type DeploymentImpl struct {
 	CodeRepoURL string //TODO: Delete and save on CTD instead
 	Base        *CTD
 	Plugins     [](*CTD)
+
+	Workdir *Workdir
 }
 
 // NewDeployment creates and initializes a new Deployment object
