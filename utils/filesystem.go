@@ -117,6 +117,27 @@ func FileListRecursively(fs afero.Fs, path string) ([]string, error) {
 	return files, nil
 }
 
+func FileListRecursivelyWithoutDirs(fs afero.Fs, path string) ([]string, error) {
+	// This is not an efficient implementation, but is quick and easy to implement. Could be improved.
+	filteredFileList := []string{}
+	fileList, err := FileListRecursively(fs, path)
+	if err != nil {
+		return filteredFileList, err
+	}
+
+	for _, file := range fileList {
+		fileInfo, err := fs.Stat(file)
+		if err != nil {
+			return filteredFileList, err
+		}
+		if !fileInfo.IsDir() {
+			filteredFileList = append(filteredFileList, file)
+		}
+	}
+
+	return filteredFileList, err
+}
+
 func fileHasContent(file afero.File) (bool, error) {
 	result := false
 

@@ -10,3 +10,20 @@ func FindString(slice []string, val string) (int, bool) {
 	}
 	return -1, false
 }
+
+// RemoveDuplicatedStrings returns a string slice without duplicated elements.
+// Order is NOT preserved
+func RemoveDuplicatedStrings(slice []string) []string {
+	result := []string{}
+
+	check := make(map[string]bool)
+	for _, element := range slice {
+		check[element] = true
+	}
+
+	for key := range check {
+		result = append(result, key)
+	}
+
+	return result
+}

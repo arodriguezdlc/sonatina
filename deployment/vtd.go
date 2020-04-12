@@ -1,6 +1,10 @@
 package deployment
 
-import "github.com/spf13/afero"
+import (
+	"path/filepath"
+
+	"github.com/spf13/afero"
+)
 
 // VTD represents a Variable Tree Definition
 type VTD struct {
@@ -8,12 +12,12 @@ type VTD struct {
 	path string
 }
 
-func (vtd *VTD) ListConfigGlobal() ([]string, error) {
-	return afero.Glob(vtd.fs, vtd.path+"/config/global/*.tfvars")
+func (vtd *VTD) ConfigGlobalPath() string {
+	return filepath.Join(vtd.path, "config", "global.tfvars")
 }
 
-func (vtd *VTD) ListConfigUser(user string) ([]string, error) {
-	return afero.Glob(vtd.fs, vtd.path+"/config/user/"+user+"/*.tfvars")
+func (vtd *VTD) ConfigUserPath() string {
+	return filepath.Join(vtd.path, "config", "user.tfvars")
 }
 
 func (vtd *VTD) ListFlavourGlobal(flavour string) ([]string, error) {

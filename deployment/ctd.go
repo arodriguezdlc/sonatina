@@ -1,6 +1,10 @@
 package deployment
 
-import "github.com/spf13/afero"
+import (
+	"path/filepath"
+
+	"github.com/spf13/afero"
+)
 
 // CTD represents a Code Tree Definition
 type CTD struct {
@@ -25,9 +29,10 @@ type modules struct {
 	path string
 }
 
+// NewCTD returns an initialized CTD struct
 // TODO
-func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) (CTD, error) {
-	ctd := CTD{
+func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) (*CTD, error) {
+	ctd := &CTD{
 		fs:   fs,
 		path: path,
 
@@ -36,15 +41,15 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) (CTD, err
 
 		main: main{
 			fs:   fs,
-			path: path + "main",
+			path: filepath.Join(path, "main"),
 		},
 		modules: modules{
 			fs:   fs,
-			path: path + "modules",
+			path: filepath.Join(path, "modules"),
 		},
 		vtd: VTD{
 			fs:   fs,
-			path: path + "vtd",
+			path: filepath.Join(path, "vtd"),
 		},
 	}
 	return ctd, nil
@@ -52,15 +57,23 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) (CTD, err
 
 // ListMainGlobalFiles returns all TF files from the global main folder
 func (ctd *CTD) ListMainGlobalFiles() ([]string, error) {
-	return afero.Glob(ctd.main.fs, ctd.main.path+"/global/*.tf")
+	return afero.Glob(ctd.main.fs, filepath.Join(ctd.main.globalPath(), "/*.tf"))
 }
 
 // ListMainUserFiles returns all TF files from the user main folder
 func (ctd *CTD) ListMainUserFiles(user string) ([]string, error) {
-	return afero.Glob(ctd.main.fs, ctd.main.path+"/user/"+user+"/*.tf")
+	return afero.Glob(ctd.main.fs, filepath.Join(ctd.main.userPath(user), "/*.tf"))
 }
 
 func (ctd *CTD) ListModules() ([]string, error) {
 	// TODO: modules could be obtained from other repos
-	return afero.Glob(ctd.modules.fs, ctd.modules.path+"/*")
+	return afero.Glob(ctd.modules.fs, filepath.Join(ctd.modules.path, "/*"))
+}
+
+func (m *main) globalPath() string {
+	return filepath.Join(m.path, "global")
+}
+
+func (m *main) userPath(user string) string {
+	return filepath.Join(m.path, "user", user)
 }

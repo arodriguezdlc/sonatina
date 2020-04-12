@@ -1,6 +1,11 @@
 package deployment
 
-import "github.com/spf13/afero"
+import (
+	"path/filepath"
+
+	"github.com/arodriguezdlc/sonatina/utils"
+	"github.com/spf13/afero"
+)
 
 type Workdir struct {
 	fs   afero.Fs
@@ -9,64 +14,143 @@ type Workdir struct {
 	deployment *DeploymentImpl
 
 	CTD *CTD
-	VTD *VTD
-}
-
-func newWorkdir(fs afero.Fs, path string) (Workdir, error) {
-	fs.MkdirAll(path, 0700)
-
-	workdir := Workdir{
-		fs:   fs,
-		path: path,
-	}
-	return workdir, nil
 }
 
 func (w *Workdir) GenerateGlobal() error {
-	// TODO
-	// Clean previous workdir
-	w.cleanGlobal()
-	// Calculate files to copy
-	// Copy files
+	err := w.cleanGlobal()
+	if err != nil {
+		return err
+	}
+
+	err = w.copyMainGlobal()
+	if err != nil {
+		return err
+	}
+
+	err = w.copyModules()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (w *Workdir) GenerateUser() error {
-	// TODO
+func (w *Workdir) GenerateUser(user string) error {
+	err := w.cleanUser(user)
+	if err != nil {
+		return err
+	}
+
+	err = w.copyMainUser(user)
+	if err != nil {
+		return err
+	}
+
+	err = w.copyModules()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (w *Workdir) cleanGlobal() error {
-	// TODO
-	return nil
-}
-
-func (w *Workdir) cleanUser() error {
-	// TODO
-	return nil
-}
-
-func (w *Workdir) calculateGlobalFileList() error {
+func (w *Workdir) copyMainGlobal() error {
 	fileList, err := w.calculateMainGlobalFileList()
 	if err != nil {
 		return err
 	}
-	// TODO: modules, vars
+
+	err = w.fs.MkdirAll(w.CTD.main.globalPath(), 0700)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range fileList {
+		fileName := filepath.Base(file)
+		err = utils.FileCopy(w.fs, file, filepath.Join(w.CTD.main.globalPath(), fileName))
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (w *Workdir) generateMainUser(user string) error {
+func (w *Workdir) copyMainUser(user string) error {
 	fileList, err := w.calculateMainUserFileList(user)
 	if err != nil {
 		return err
 	}
 
+	err = w.fs.MkdirAll(w.CTD.main.userPath(user), 0700)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range fileList {
+		fileName := filepath.Base(file)
+		err = utils.FileCopy(w.fs, file, filepath.Join(w.CTD.main.userPath(user), fileName))
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (w *Workdir) calculateModulesFileList() error {
-	// TODO
-	//fileList, err := w.deployment.Base.
+func (w *Workdir) copyModules() error {
+	moduleList, err := w.calculateModuleList()
+	if err != nil {
+		return err
+	}
+
+	err = w.fs.MkdirAll(w.CTD.modules.path, 0700)
+	if err != nil {
+		return err
+	}
+
+	for _, module := range moduleList {
+		moduleName := filepath.Base(module)
+		err = utils.FileCopyRecursively(w.fs, module, filepath.Join(w.CTD.modules.path, moduleName))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// copyVTD copies variable files from VTDs in order
+// XX_YY_name.tfvars
+func (w *Workdir) copyVTD() error {
+	w.deployment.Base.vtd.ListStaticGlobal()
+	return nil
+}
+
+func (w *Workdir) cleanGlobal() error {
+	err := w.fs.RemoveAll(w.CTD.main.globalPath())
+	if err != nil {
+		return err
+	}
+
+	err = w.fs.RemoveAll(w.CTD.modules.path)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *Workdir) cleanUser(user string) error {
+	err := w.fs.RemoveAll(w.CTD.main.userPath(user))
+	if err != nil {
+		return err
+	}
+
+	err = w.fs.RemoveAll(w.CTD.modules.path)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -85,7 +169,7 @@ func (w *Workdir) calculateMainGlobalFileList() ([]string, error) {
 		files = append(files, pluginFiles...)
 	}
 
-	return files, err
+	return files, nil
 }
 
 func (w *Workdir) calculateMainUserFileList(user string) ([]string, error) {
@@ -102,13 +186,22 @@ func (w *Workdir) calculateMainUserFileList(user string) ([]string, error) {
 		files = append(files, pluginFiles...)
 	}
 
-	return files, err
+	return files, nil
 }
 
-func (w *Workdir) cleanup() error {
-	err := w.fs.RemoveAll(w.path)
+func (w *Workdir) calculateModuleList() ([]string, error) {
+	modules, err := w.deployment.Base.ListModules()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	for _, plugin := range w.deployment.Plugins {
+		pluginModules, err := plugin.ListModules()
+		if err != nil {
+			return nil, err
+		}
+		modules = append(modules, pluginModules...)
+	}
+
+	return modules, nil
 }

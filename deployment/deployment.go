@@ -1,6 +1,8 @@
 package deployment
 
 import (
+	"path/filepath"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 )
@@ -50,6 +52,26 @@ func NewDeployment(name string, storageRepoURL string, codeRepoURL string, fs af
 	return deploy, nil
 }
 
+func (d *DeploymentImpl) newWorkdir() (Workdir, error) {
+	path := filepath.Join(d.path, "workdir")
+
+	workdir := Workdir{
+		fs:   d.fs,
+		path: path,
+
+		deployment: d,
+
+		CTD: nil,
+	}
+
+	err := d.fs.MkdirAll(path, 0700)
+	if err != nil {
+		return workdir, err
+	}
+
+	return workdir, nil
+}
+
 // Purge removes all local files related to a deployment
 func (d *DeploymentImpl) Purge() error {
 	logrus.Debugln("deploymentImpl.Purge: recursive deletion on deployment path " + d.path)
@@ -66,12 +88,12 @@ func (d *DeploymentImpl) initialize(storageRepoURL string) error {
 		return err
 	}
 
-	if vars, err = NewVars(d.fs, d.path+"/variables", storageRepoURL); err != nil {
+	if vars, err = NewVars(d.fs, filepath.Join(d.path, "variables"), storageRepoURL); err != nil {
 		d.rollbackInitialize()
 		return err
 	}
 
-	if state, err = NewState(d.fs, d.path+"/state", storageRepoURL); err != nil {
+	if state, err = NewState(d.fs, filepath.Join(d.path, "/state"), storageRepoURL); err != nil {
 		d.rollbackInitialize()
 		return err
 	}

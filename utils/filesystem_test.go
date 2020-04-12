@@ -183,6 +183,26 @@ func TestFileListRecursively(t *testing.T) {
 	}
 }
 
+func TestFileListRecursivelyWithoutDirs(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	path := "/list"
+	expectedFileTree := testFileTreeWithoutDirs(path)
+
+	err := testCreateFileTree(fs, path)
+	if err != nil {
+		t.Error(err)
+	}
+
+	obtainedFileTree, err := FileListRecursivelyWithoutDirs(fs, path)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(expectedFileTree, obtainedFileTree) {
+		t.Errorf("Incorrect file tree.\n\n Expected: %v\n\n Obtained: %v\n", expectedFileTree, obtainedFileTree)
+	}
+}
+
 func testFileTree(basepath string) []string {
 	filetree := []string{
 		basepath + "/file1.txt",
@@ -195,6 +215,22 @@ func testFileTree(basepath string) []string {
 		basepath + "/folder3/file1.txt",
 		basepath + "/folder3/folder1",
 		basepath + "/folder3/folder2",
+		basepath + "/folder3/folder1/file1.txt",
+		basepath + "/folder3/folder1/file2.txt",
+		basepath + "/folder3/folder2/file1.txt",
+		basepath + "/folder3/folder2/file2.txt",
+	}
+	sort.Strings(filetree)
+	return filetree
+}
+
+func testFileTreeWithoutDirs(basepath string) []string {
+	filetree := []string{
+		basepath + "/file1.txt",
+		basepath + "/folder2/file1.txt",
+		basepath + "/folder2/file2.txt",
+		basepath + "/folder2/file3.txt",
+		basepath + "/folder3/file1.txt",
 		basepath + "/folder3/folder1/file1.txt",
 		basepath + "/folder3/folder1/file2.txt",
 		basepath + "/folder3/folder2/file1.txt",

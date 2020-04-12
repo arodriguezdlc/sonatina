@@ -2,6 +2,7 @@ package utils
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -31,6 +32,19 @@ func TestFindStringWithUnexistingString(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(expectedResult, obtainedResult) {
-		t.Errorf("Incorrect Index, expected: %v, obtained: %v", expectedIndex, obtainedIndex)
+		t.Errorf("Incorrect Result, expected: %v, obtained: %v", expectedResult, obtainedResult)
+	}
+}
+
+func TestRemoveDuplicatedStrings(t *testing.T) {
+	testSlice := []string{"foo", "bar", "test", "foo"}
+	expectedResult := []string{"foo", "bar", "test"}
+	sort.Strings(expectedResult) // RemoveDuplicatedStrings doesn't guaranteed the order
+
+	obtainedResult := RemoveDuplicatedStrings(testSlice)
+	sort.Strings(obtainedResult) // RemoveDuplicatedStrings doesn't guaranteed the order
+
+	if !reflect.DeepEqual(expectedResult, obtainedResult) {
+		t.Errorf("Incorrect Result, expected: %v, obtained: %v", expectedResult, obtainedResult)
 	}
 }
