@@ -60,7 +60,7 @@ func (s *State) Load() {
 }
 
 func (s *State) initialize() error {
-	err := s.fs.MkdirAll(s.path+"/global", 0700)
+	err := s.fs.MkdirAll(s.path+"/global", 0755)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (s *State) initialize() error {
 		return err
 	}
 
-	err = s.fs.MkdirAll(s.path+"/user", 0700)
+	err = s.fs.MkdirAll(s.path+"/user", 0755)
 	if err != nil {
 		return err
 	}

@@ -33,7 +33,7 @@ func newManagerJSON(fs afero.Fs, deploymentsPath string, deploymentsFilename str
 		return nil, err
 	}
 
-	err = fs.MkdirAll(path, 0700)
+	err = fs.MkdirAll(path, 0755)
 	if err != nil {
 		return nil, err
 	}

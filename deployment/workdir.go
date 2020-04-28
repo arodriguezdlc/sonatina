@@ -60,7 +60,7 @@ func (w *Workdir) copyMainGlobal() error {
 		return err
 	}
 
-	err = w.fs.MkdirAll(w.CTD.main.globalPath(), 0700)
+	err = w.fs.MkdirAll(w.CTD.main.globalPath(), 0755)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (w *Workdir) copyMainUser(user string) error {
 		return err
 	}
 
-	err = w.fs.MkdirAll(w.CTD.main.userPath(user), 0700)
+	err = w.fs.MkdirAll(w.CTD.main.userPath(user), 0755)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (w *Workdir) copyModules() error {
 		return err
 	}
 
-	err = w.fs.MkdirAll(w.CTD.modules.path, 0700)
+	err = w.fs.MkdirAll(w.CTD.modules.path, 0755)
 	if err != nil {
 		return err
 	}

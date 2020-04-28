@@ -16,6 +16,7 @@ func setDefaultConfig() {
 	viper.SetDefault("DeploymentsFilename", "deployments.json")
 	viper.SetDefault("ManagerConnector", "json")
 	viper.SetDefault("TestFilesystem", false)
+	viper.SetDefault("TerraformPath", "~/.sonatina/terraform")
 }
 
 func setEnvVariables() {

@@ -318,7 +318,7 @@ func testWorkdirCTDFiles(path string, filePrefix string) []string {
 
 func testWorktreeCreateCTDFiles(fs afero.Fs, path string, filePrefix string) error {
 	for _, directory := range testWorkdirCTDDirectories(path, filePrefix) {
-		err := fs.MkdirAll(directory, 0700)
+		err := fs.MkdirAll(directory, 0755)
 		if err != nil {
 			return err
 		}

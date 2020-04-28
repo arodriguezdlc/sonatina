@@ -64,7 +64,7 @@ func (d *DeploymentImpl) newWorkdir() (Workdir, error) {
 		CTD: nil,
 	}
 
-	err := d.fs.MkdirAll(path, 0700)
+	err := d.fs.MkdirAll(path, 0755)
 	if err != nil {
 		return workdir, err
 	}
@@ -79,21 +79,20 @@ func (d *DeploymentImpl) Purge() error {
 }
 
 func (d *DeploymentImpl) initialize(storageRepoURL string) error {
-	var err error
-	var vars *Vars
-	var state *State
-
 	//Create deployment directory (idempotent operation)
-	if err = d.fs.MkdirAll(d.path, 0700); err != nil {
+	err := d.fs.MkdirAll(d.path, 0755)
+	if err != nil {
 		return err
 	}
 
-	if vars, err = NewVars(d.fs, filepath.Join(d.path, "variables"), storageRepoURL); err != nil {
+	vars, err := NewVars(d.fs, filepath.Join(d.path, "variables"), storageRepoURL)
+	if err != nil {
 		d.rollbackInitialize()
 		return err
 	}
 
-	if state, err = NewState(d.fs, filepath.Join(d.path, "/state"), storageRepoURL); err != nil {
+	state, err := NewState(d.fs, filepath.Join(d.path, "state"), storageRepoURL)
+	if err != nil {
 		d.rollbackInitialize()
 		return err
 	}

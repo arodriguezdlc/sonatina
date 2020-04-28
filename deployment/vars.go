@@ -64,7 +64,7 @@ func (v *Vars) initialize() error {
 		return err
 	}
 
-	err = v.fs.MkdirAll(v.path+"/global", 0700)
+	err = v.fs.MkdirAll(v.path+"/global", 0755)
 	if err != nil {
 		return err
 	}
