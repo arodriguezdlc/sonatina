@@ -20,17 +20,17 @@ func TestGetBinary(t *testing.T) {
 
 	fs := afero.NewMemMapFs()
 
-	terraform, err := New(fs, filepath.Join("terraform"))
+	terraform, err := New(fs, filepath.Join("terraform"), version, arch)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = terraform.GetBinary(version, arch)
+	err = terraform.GetBinary()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	terraformBinary, err := afero.ReadFile(fs, terraform.BinaryPath(version, arch))
+	terraformBinary, err := afero.ReadFile(fs, terraform.BinaryPath())
 	if err != nil {
 		t.Fatal(err)
 	}

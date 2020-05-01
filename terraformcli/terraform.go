@@ -14,13 +14,19 @@ import (
 type Terraform struct {
 	fs   afero.Fs
 	path string
+
+	version string
+	arch    string
 }
 
 // New constructs a new Terraform struct and returns it
-func New(fs afero.Fs, path string) (Terraform, error) {
+func New(fs afero.Fs, path string, version string, arch string) (Terraform, error) {
 	terraform := Terraform{
 		fs:   fs,
 		path: path,
+
+		version: version,
+		arch:    arch,
 	}
 
 	err := fs.MkdirAll(path, 0755)
@@ -28,29 +34,45 @@ func New(fs afero.Fs, path string) (Terraform, error) {
 		return terraform, err
 	}
 
+	ok, err := terraform.checkBinary()
+	if err != nil {
+		return terraform, err
+	}
+	if !ok {
+		err = terraform.GetBinary()
+		if err != nil {
+			return terraform, err
+		}
+	}
+
 	return terraform, nil
 }
 
-// BinaryPath returns the path of the terraform binary with a specified version and arch.
-func (t *Terraform) BinaryPath(version string, arch string) string {
-	return filepath.Join(t.path, fmt.Sprintf("terraform_%s_%s", version, arch))
+// BinaryPath returns the path of the terraform binary
+func (t *Terraform) BinaryPath() string {
+	return filepath.Join(t.path, fmt.Sprintf("terraform_%s_%s", t.version, t.arch))
 }
 
 // GetBinary downloads a terraform binary from Hashicorp official release page.
-func (t *Terraform) GetBinary(version string, arch string) error {
-	url := t.terraformDownloadURL(version, arch)
+func (t *Terraform) GetBinary() error {
+	url := t.terraformDownloadURL()
 
 	zipFile, err := t.downloadZip(url)
 	if err != nil {
 		return err
 	}
 
-	err = t.uncompressZip(zipFile, t.BinaryPath(version, arch))
+	err = t.uncompressZip(zipFile, t.BinaryPath())
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// XXX: a sha check would be great. For now, only check if binary exists
+func (t *Terraform) checkBinary() (bool, error) {
+	return afero.Exists(t.fs, t.BinaryPath())
 }
 
 func (t *Terraform) downloadZip(url string) (string, error) {
@@ -106,6 +128,6 @@ func (t *Terraform) uncompressZip(zipFilePath string, binaryFilePath string) err
 	return nil
 }
 
-func (t *Terraform) terraformDownloadURL(version string, arch string) string {
-	return fmt.Sprintf("https://releases.hashicorp.com/terraform/%s/terraform_%s_%s.zip", version, version, arch)
+func (t *Terraform) terraformDownloadURL() string {
+	return fmt.Sprintf("https://releases.hashicorp.com/terraform/%s/terraform_%s_%s.zip", t.version, t.version, t.arch)
 }
