@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 
 	"github.com/arodriguezdlc/sonatina/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -54,20 +55,42 @@ func (w *Workdir) GenerateUser(user string) error {
 	return nil
 }
 
+func (d *DeploymentImpl) newWorkdir() error {
+	path := filepath.Join(d.path, "workdir")
+
+	workdir := &Workdir{
+		fs:   d.fs,
+		path: path,
+
+		deployment: d,
+
+		CTD: NewCTD(d.fs, path, "", ""),
+	}
+
+	err := d.fs.MkdirAll(path, 0755)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't create directory %s", path)
+	}
+
+	d.Workdir = workdir
+	return nil
+}
+
 func (w *Workdir) copyMainGlobal() error {
 	fileList, err := w.calculateMainGlobalFileList()
 	if err != nil {
 		return err
 	}
 
-	err = w.fs.MkdirAll(w.CTD.main.globalPath(), 0755)
+	mainPath := w.CTD.main.globalPath()
+	err = w.fs.MkdirAll(mainPath, 0755)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't create directory %s", mainPath)
 	}
 
-	for _, file := range fileList {
-		fileName := filepath.Base(file)
-		err = utils.FileCopy(w.fs, file, filepath.Join(w.CTD.main.globalPath(), fileName))
+	for _, src := range fileList {
+		dst := filepath.Join(w.CTD.main.globalPath(), filepath.Base(src))
+		err = utils.FileCopy(w.fs, src, dst)
 		if err != nil {
 			return err
 		}
@@ -82,14 +105,15 @@ func (w *Workdir) copyMainUser(user string) error {
 		return err
 	}
 
-	err = w.fs.MkdirAll(w.CTD.main.userPath(user), 0755)
+	mainPath := w.CTD.main.userPath(user)
+	err = w.fs.MkdirAll(mainPath, 0755)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't create directory %s", mainPath)
 	}
 
-	for _, file := range fileList {
-		fileName := filepath.Base(file)
-		err = utils.FileCopy(w.fs, file, filepath.Join(w.CTD.main.userPath(user), fileName))
+	for _, src := range fileList {
+		dst := filepath.Join(w.CTD.main.userPath(user), filepath.Base(src))
+		err = utils.FileCopy(w.fs, src, dst)
 		if err != nil {
 			return err
 		}
@@ -106,12 +130,18 @@ func (w *Workdir) copyModules() error {
 
 	err = w.fs.MkdirAll(w.CTD.modules.path, 0755)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "couldn't create directory")
 	}
 
-	for _, module := range moduleList {
-		moduleName := filepath.Base(module)
-		err = utils.FileCopyRecursively(w.fs, module, filepath.Join(w.CTD.modules.path, moduleName))
+	for _, src := range moduleList {
+		dst := filepath.Join(w.CTD.modules.path, filepath.Base(src))
+
+		err = w.fs.MkdirAll(dst, 0755)
+		if err != nil {
+			return errors.Wrap(err, "couldn't create directory")
+		}
+
+		err = utils.FileCopyRecursively(w.fs, src, dst)
 		if err != nil {
 			return err
 		}
@@ -120,36 +150,33 @@ func (w *Workdir) copyModules() error {
 	return nil
 }
 
-// copyVTD copies variable files from VTDs in order
-// XX_YY_name.tfvars
-func (w *Workdir) copyVTD() error {
-	w.deployment.Base.vtd.ListStaticGlobal()
-	return nil
-}
-
 func (w *Workdir) cleanGlobal() error {
-	err := w.fs.RemoveAll(w.CTD.main.globalPath())
+	path := w.CTD.main.globalPath()
+	err := w.fs.RemoveAll(path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
 	}
 
-	err = w.fs.RemoveAll(w.CTD.modules.path)
+	path = w.CTD.modules.path
+	err = w.fs.RemoveAll(path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
 	}
 
 	return nil
 }
 
 func (w *Workdir) cleanUser(user string) error {
-	err := w.fs.RemoveAll(w.CTD.main.userPath(user))
+	path := w.CTD.main.userPath(user)
+	err := w.fs.RemoveAll(path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
 	}
 
-	err = w.fs.RemoveAll(w.CTD.modules.path)
+	path = w.CTD.modules.path
+	err = w.fs.RemoveAll(path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
 	}
 
 	return nil

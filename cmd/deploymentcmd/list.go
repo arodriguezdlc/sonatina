@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/arodriguezdlc/sonatina/manager"
 	"github.com/spf13/cobra"
 )
@@ -15,23 +13,21 @@ var ListDeployment = &cobra.Command{
 	Use:   "deployments",
 	Short: "list deployments managed by sonatina",
 	Long:  `TO DO`,
-	Run:   listDeploymentExecution,
+	RunE:  listDeploymentExecution,
 }
 
-//To define flags
-func init() {
-}
-
-func listDeploymentExecution(cmd *cobra.Command, args []string) {
+func listDeploymentExecution(command *cobra.Command, args []string) error {
 	m := manager.GetManager()
-	list, err := m.List()
 
+	list, err := m.List()
 	if err != nil {
-		logrus.Fatalln(err)
+		return err
 	}
 
 	fmt.Fprintln(os.Stdout, "DEPLOYMENTS:")
 	for _, element := range list {
 		fmt.Fprintln(os.Stdout, element)
 	}
+
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -14,16 +15,18 @@ func NewFileIfNotExist(fs afero.Fs, path string) error {
 	file, err := fs.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer file.Close()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't open file %s", path)
 	}
 	return nil
 }
 
+// NewFileWithContentIfNotExist creates a file with a speficied content only if file
+// doesn't exist
 func NewFileWithContentIfNotExist(fs afero.Fs, path string, content string) error {
 	file, err := fs.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer file.Close()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't open file %s", path)
 	}
 
 	ok, err := fileHasContent(file)
@@ -33,8 +36,24 @@ func NewFileWithContentIfNotExist(fs afero.Fs, path string, content string) erro
 	if !ok {
 		_, err := file.WriteString(content)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "couldn't write on file %s", path)
 		}
+	}
+
+	return nil
+}
+
+// NewDirectoryWithKeep creates a directory and an empty .keep file to maintain
+// filetree in git
+func NewDirectoryWithKeep(fs afero.Fs, path string) error {
+	err := fs.MkdirAll(path, 0755)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't create directory %s", path)
+	}
+
+	err = NewFileIfNotExist(fs, filepath.Join(path, ".keep"))
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -46,20 +65,26 @@ func FileCopy(fs afero.Fs, sourcePath string, destPath string) error {
 	// It could be improved in the future.
 	fileInfo, err := fs.Stat(sourcePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't get stat from file %s", sourcePath)
 	}
 
 	fileContent, err := afero.ReadFile(fs, sourcePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't read from file %s", sourcePath)
 	}
 
-	return afero.WriteFile(fs, destPath, fileContent, fileInfo.Mode())
+	err = afero.WriteFile(fs, destPath, fileContent, fileInfo.Mode())
+	if err != nil {
+		return errors.Wrapf(err, "couldn't write to file %s", destPath)
+	}
+
+	return nil
 }
 
+// FileCopyRecursively copies recursively files from one directory to other, being
+// similar to a `cp -R` command.
 // Based on walk function https://github.com/spf13/afero/blob/master/path.go
 func FileCopyRecursively(fs afero.Fs, sourcePath string, destPath string) error {
-	// TODO
 	filenames, err := readDirNames(fs, sourcePath)
 	if err != nil {
 		return err
@@ -70,13 +95,13 @@ func FileCopyRecursively(fs afero.Fs, sourcePath string, destPath string) error 
 
 		sourceFileInfo, err := fs.Stat(sourceFilePath)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "couldn't get stat from file %s", sourceFilePath)
 		}
 
 		if sourceFileInfo.IsDir() {
 			err = fs.Mkdir(destFilePath, sourceFileInfo.Mode())
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "couldn't create directory %s", destFilePath)
 			}
 			err = FileCopyRecursively(fs, sourceFilePath, destFilePath)
 			if err != nil {
@@ -93,6 +118,8 @@ func FileCopyRecursively(fs afero.Fs, sourcePath string, destPath string) error 
 	return nil
 }
 
+// FileListRecursively list recursively all files inside a directory. The result list
+// is alphanumerically ordered
 func FileListRecursively(fs afero.Fs, path string) ([]string, error) {
 	files, err := readDirNamesGlob(fs, path)
 	if err != nil {
@@ -102,7 +129,7 @@ func FileListRecursively(fs afero.Fs, path string) ([]string, error) {
 	for _, file := range files {
 		fileInfo, err := fs.Stat(file)
 		if err != nil {
-			return files, err
+			return files, errors.Wrapf(err, "couldn't get stat from file %s", file)
 		}
 		if fileInfo.IsDir() {
 			appendFiles, err := FileListRecursively(fs, file)
@@ -117,6 +144,8 @@ func FileListRecursively(fs afero.Fs, path string) ([]string, error) {
 	return files, nil
 }
 
+// FileListRecursivelyWithoutDirs list recursively all files inside a directory, excluding
+// directories. The result list is alphanumerically ordered
 func FileListRecursivelyWithoutDirs(fs afero.Fs, path string) ([]string, error) {
 	// This is not an efficient implementation, but is quick and easy to implement. Could be improved.
 	filteredFileList := []string{}
@@ -128,7 +157,7 @@ func FileListRecursivelyWithoutDirs(fs afero.Fs, path string) ([]string, error) 
 	for _, file := range fileList {
 		fileInfo, err := fs.Stat(file)
 		if err != nil {
-			return filteredFileList, err
+			return filteredFileList, errors.Wrapf(err, "couldn't get stat from file %s", file)
 		}
 		if !fileInfo.IsDir() {
 			filteredFileList = append(filteredFileList, file)
@@ -143,7 +172,7 @@ func fileHasContent(file afero.File) (bool, error) {
 
 	fileInfo, err := file.Stat()
 	if err != nil {
-		return result, err
+		return result, errors.Wrapf(err, "couldn't get stat from file %s", file.Name())
 	}
 
 	if fileInfo.Size() > 0 {
@@ -156,13 +185,13 @@ func fileHasContent(file afero.File) (bool, error) {
 func readDirNames(fs afero.Fs, dirname string) ([]string, error) {
 	f, err := fs.Open(dirname)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "couldn't open file %s", dirname)
 	}
 	defer f.Close()
 
 	names, err := f.Readdirnames(-1)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "couldn't read dir names from %s", dirname)
 	}
 
 	sort.Strings(names)
@@ -173,13 +202,13 @@ func readDirNames(fs afero.Fs, dirname string) ([]string, error) {
 func readDirNamesGlob(fs afero.Fs, dirname string) ([]string, error) {
 	f, err := fs.Open(dirname)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "couldn't open file %s", dirname)
 	}
 	defer f.Close()
 
 	names, err := f.Readdirnames(-1)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "couldn't read dir names from %s", dirname)
 	}
 
 	namesGlob := []string{}

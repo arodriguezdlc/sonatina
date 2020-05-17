@@ -10,7 +10,6 @@ var Delete = &cobra.Command{
 	Use:   "delete",
 	Short: "delete",
 	Long:  "delete",
-	//Run:   util.Help,
 }
 
 func init() {

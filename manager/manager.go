@@ -12,7 +12,9 @@ import (
 type Manager interface {
 	List() ([]string, error)
 	Get(name string) (deployment.Deployment, error)
-	Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error)
+	Create(name string, storageRepoURI string, codeRepoURI string, codeRepoPath string,
+		terraformVersion string, flavour string) error
+	Clone(name string, storageRepoURI string, codeRepoURI string) error
 	Delete(name string) error
 }
 
@@ -22,8 +24,7 @@ var manager Manager
 
 // InitializeManager creates a deployment manager object and saves it
 // in the manager global variable
-func InitializeManager(fs afero.Fs) error {
-	connector := viper.GetString("ManagerConnector")
+func InitializeManager(fs afero.Fs, connector string) error {
 	var err error
 	switch connector {
 	case "json":

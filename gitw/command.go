@@ -3,113 +3,101 @@ package gitw
 import (
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 )
 
+// Command implements methods with same interface than official
+// git commands but over go-git.
 type Command struct {
-	gitfs gitfs
+	fs   afero.Fs
+	path string
 }
 
 // NewCommand is a constructor for a gitw Command object, used to execute
 // equivalents to git commands over a specific repository.
 // Returns a Command struct
-func NewCommand(fs afero.Fs, path string) (Command, error) {
-	var err error
-
-	command := Command{
-		gitfs: gitfs{},
-	}
-
-	command.gitfs, err = newGitFs(fs, path)
-	if err != nil {
-		return command, err
-	}
-
-	return command, nil
+func NewCommand(fs afero.Fs, path string) (*Command, error) {
+	// XXX: fs afero.Fs is not used, but is maintained for retrocompatibility
+	// Also, we would like to use afero Fs to provide testing via ram filesystem.
+	return &Command{
+		fs:   fs,
+		path: path,
+	}, nil
 }
 
 // Clone executes a `git clone` equivalent.
-func (c Command) Clone(repoURL string) error {
-	_, err := git.Clone(c.gitfs.storer, c.gitfs.worktree, &git.CloneOptions{
+func (c *Command) Clone(repoURL string) error {
+	_, err := git.PlainClone(c.path, false, &git.CloneOptions{
 		URL: repoURL,
 	})
-	if err != nil {
-		c.cloneRollback()
-	}
-	return err
+	return errors.Wrapf(err, "couldn't clone repository %s", repoURL)
 }
 
 // CloneBranch executes a `git clone`, but obtaining only specified branch.
-func (c Command) CloneBranch(repoURL string, branch string) error {
-	_, err := git.Clone(c.gitfs.storer, c.gitfs.worktree, &git.CloneOptions{
+func (c *Command) CloneBranch(repoURL string, branch string) error {
+	_, err := git.PlainClone(c.path, false, &git.CloneOptions{
 		URL:           repoURL,
 		ReferenceName: plumbing.NewBranchReferenceName(branch),
 		SingleBranch:  true,
 	})
+	return errors.Wrapf(err, "couldn't clone repository %s", repoURL)
+}
+
+// Init executes a `git init` equivalent
+func (c *Command) Init() error {
+	_, err := git.PlainInit(c.path, false)
 	if err != nil {
-		c.cloneRollback()
+		return errors.Wrapf(err, "couldn't init new repository on %s", c.path)
 	}
-	return err
+	return nil
 }
 
-// CloneOrInit executes a `git clone`, or a `git init` if repository doesn't exist
-// or have not been initialized.
-// XXX: Maybe should be moved to other package
-func (c Command) CloneOrInit(repoURL string, branch string) (string, error) {
-	operation := "clone"
-	err := c.CloneBranch(repoURL, branch)
-
-	if err == git.ErrInvalidReference ||
-		err == transport.ErrEmptyRemoteRepository {
-
-		operation = "init"
-		_, err = c.Init()
-	}
-
-	return operation, err
-}
-
-func (c Command) Init() (*git.Repository, error) {
-	return git.Init(c.gitfs.storer, c.gitfs.worktree)
-}
-
-func (c Command) CheckoutNewBranch(branch string) error {
-	repo, err := c.open()
-	if err != nil {
-		return err
-	}
-
-	worktree, err := repo.Worktree()
+// CheckoutNewBranch executes a `git checkout -b` equivalent
+func (c *Command) CheckoutNewBranch(branch string) error {
+	repo, worktree, err := c.openWithWorktree()
 	if err != nil {
 		return err
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "couldn't get head reference")
 	}
 
-	return worktree.Checkout(&git.CheckoutOptions{
+	err = worktree.Checkout(&git.CheckoutOptions{
 		Create: true,
 		Branch: plumbing.NewBranchReferenceName(branch),
 		Hash:   head.Hash(),
 	})
+	if err != nil {
+		return errors.Wrapf(err, "couldn't checkout to new branch %s", branch)
+	}
+
+	return nil
 }
 
-func (c Command) AddGlob(pattern string) error {
+// AddGlob executes a `git add` equivalent
+func (c *Command) AddGlob(pattern string) error {
 	worktree, err := c.worktree()
 	if err != nil {
 		return err
 	}
 
-	return worktree.AddGlob(pattern)
+	err = worktree.AddGlob(pattern)
+	if err != nil {
+		return errors.Wrap(err, "couldn't add to worktree")
+	}
+
+	return nil
 }
 
-func (c Command) Commit(msg string) error {
+// Commit executes a `git commit -m` equivalent
+func (c *Command) Commit(msg string) error {
 	worktree, err := c.worktree()
 	if err != nil {
 		return err
@@ -122,25 +110,57 @@ func (c Command) Commit(msg string) error {
 			When:  time.Now(),
 		},
 	})
+	if err != nil {
+		return errors.Wrap(err, "couldn't create commit")
+	}
 
-	return err
+	return nil
+}
+
+// RemoteAdd executes a `git remote add` equivalent
+func (c *Command) RemoteAdd(name string, url string) error {
+	repo, err := c.open()
+	if err != nil {
+		return err
+	}
+
+	_, err = repo.CreateRemote(&config.RemoteConfig{
+		Name: name,
+		URLs: []string{url},
+	})
+	if err != nil {
+		return errors.Wrap(err, "couldn't create remote")
+	}
+
+	return nil
 }
 
 // Private
 
-func (c Command) open() (*git.Repository, error) {
-	return git.Open(c.gitfs.storer, c.gitfs.worktree)
-}
-
-func (c Command) worktree() (*git.Worktree, error) {
-	repo, err := c.open()
+func (c *Command) open() (*git.Repository, error) {
+	repo, err := git.PlainOpen(c.path)
 	if err != nil {
-		return nil, err
+		return repo, errors.Wrapf(err, "couldn't open repo on %s", c.path)
 	}
 
-	return repo.Worktree()
+	return repo, nil
 }
 
-func (c Command) cloneRollback() error {
-	return c.gitfs.fs.RemoveAll(c.gitfs.path)
+func (c *Command) openWithWorktree() (*git.Repository, *git.Worktree, error) {
+	repo, err := c.open()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "couldn't open worktree on %s", c.path)
+	}
+
+	return repo, worktree, nil
+}
+
+func (c *Command) worktree() (*git.Worktree, error) {
+	_, worktree, err := c.openWithWorktree()
+	return worktree, err
 }

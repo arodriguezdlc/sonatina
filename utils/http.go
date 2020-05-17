@@ -5,16 +5,16 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
 // HTTPDownloadFile downloads a url and store it in local filepath.
 // Based on https://progolang.com/how-to-download-files-in-go/
 func HTTPDownloadFile(fs afero.Fs, file afero.File, url string) error {
-	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't perform HTTP GET over %s", url)
 	}
 	defer resp.Body.Close()
 
@@ -26,26 +26,14 @@ func HTTPDownloadFile(fs afero.Fs, file afero.File, url string) error {
 	// Write the body to file
 	_, err = io.Copy(file, resp.Body)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "couldn't copy streams")
 	}
 	return nil
 }
 
 func httpCheckCorrectResponseCode(resp *http.Response) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return HTTPBadResponseError{
-			StatusCode: resp.StatusCode,
-			Status:     resp.Status,
-		}
+		return errors.New(fmt.Sprintf("HTTP Response with Status Code %s", resp.Status))
 	}
 	return nil
-}
-
-type HTTPBadResponseError struct {
-	StatusCode int
-	Status     string
-}
-
-func (err HTTPBadResponseError) Error() string {
-	return fmt.Sprintf("HTTP Response with Status Code %s", err.Status)
 }

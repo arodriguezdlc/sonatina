@@ -1,52 +1,22 @@
 package deployment
 
 import (
+	"path/filepath"
+
 	"github.com/arodriguezdlc/sonatina/gitw"
 	"github.com/arodriguezdlc/sonatina/utils"
 	"github.com/spf13/afero"
 )
 
+const stateBranch string = "state"
+
 // State manages terraform state
 type State struct {
-	fs      afero.Fs
-	path    string
-	repoURL string
-	gitw    gitw.Command
-}
+	fs   afero.Fs
+	path string
+	gitw *gitw.Command
 
-// NewState creates and initializes a new State object
-func NewState(fs afero.Fs, path string, repoURL string) (*State, error) {
-	var err error
-
-	state := &State{
-		fs:      fs,
-		path:    path,
-		repoURL: repoURL,
-		gitw:    gitw.Command{},
-	}
-
-	state.gitw, err = gitw.NewCommand(fs, path)
-	if err != nil {
-		return state, err
-	}
-
-	ok, err := state.isInitialized()
-	if err != nil {
-		return state, err
-	}
-	if !ok {
-		operation, err := state.gitw.CloneOrInit(repoURL, "state")
-		if err != nil {
-			return state, err
-		}
-		if operation == "init" {
-			if err = state.initialize(); err != nil {
-				return state, err
-			}
-		}
-	}
-
-	return state, nil
+	RepoURL string
 }
 
 // Save method stores terraform state information on git repository
@@ -59,40 +29,90 @@ func (s *State) Load() {
 	// TODO
 }
 
-func (s *State) initialize() error {
-	err := s.fs.MkdirAll(s.path+"/global", 0755)
+func (d *DeploymentImpl) getState(repoURL string) error {
+	state, err := newState(d.fs, d.path, repoURL)
 	if err != nil {
 		return err
 	}
 
-	err = utils.NewFileIfNotExist(s.fs, s.path+"/global/.keep")
-	if err != nil {
-		return err
-	}
-
-	err = s.fs.MkdirAll(s.path+"/user", 0755)
-	if err != nil {
-		return err
-	}
-
-	err = utils.NewFileIfNotExist(s.fs, s.path+"/user/.keep")
-	if err != nil {
-		return err
-	}
-
-	err = s.gitw.AddGlob(".")
-	if err != nil {
-		return err
-	}
-
-	err = s.gitw.Commit("Initial commit")
-	if err != nil {
-		return err
-	}
-
-	return s.gitw.CheckoutNewBranch("state")
+	d.State = state
+	return nil
 }
 
-func (s *State) isInitialized() (bool, error) {
-	return afero.Exists(s.fs, s.path)
+func (d *DeploymentImpl) cloneState(repoURL string) error {
+	state, err := newState(d.fs, d.path, repoURL)
+	if err != nil {
+		return err
+	}
+
+	err = state.gitw.CloneBranch(repoURL, stateBranch)
+	if err != nil {
+		return err
+	}
+
+	d.State = state
+	return nil
+}
+
+func (d *DeploymentImpl) createState(repoURL string) error {
+	state, err := newState(d.fs, d.path, repoURL)
+	if err != nil {
+		return err
+	}
+
+	err = state.gitw.Init()
+	if err != nil {
+		return err
+	}
+
+	err = state.gitw.RemoteAdd("origin", repoURL)
+	if err != nil {
+		return err
+	}
+
+	for _, subdir := range []string{"global", "user"} {
+		err := utils.NewDirectoryWithKeep(state.fs, filepath.Join(state.path, subdir))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = state.gitw.AddGlob(".")
+	if err != nil {
+		return err
+	}
+
+	err = state.gitw.Commit("Initial commit")
+	if err != nil {
+		return err
+	}
+
+	// XXX: checkout executed after first commit to avoid
+	// reference errors. Must be reviewed
+	err = state.gitw.CheckoutNewBranch(stateBranch)
+	if err != nil {
+		return err
+	}
+
+	d.State = state
+	return nil
+}
+
+func newState(fs afero.Fs, deploymentPath string, repoURL string) (*State, error) {
+	path := filepath.Join(deploymentPath, stateBranch)
+
+	stateGit, err := gitw.NewCommand(fs, path)
+	if err != nil {
+		return nil, err
+	}
+
+	state := &State{
+		fs:   fs,
+		path: path,
+		gitw: stateGit,
+
+		RepoURL: repoURL,
+	}
+
+	return state, nil
 }

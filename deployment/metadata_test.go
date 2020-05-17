@@ -20,7 +20,7 @@ func TestLoadMetadata(t *testing.T) {
 
 	err = loadedMetadata.load()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if !reflect.DeepEqual(expectedMetadata, loadedMetadata) {
@@ -35,14 +35,14 @@ func TestSaveMetadata(t *testing.T) {
 
 	err := metadata.save()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	expectedJSON := testMetadataReferenceJSON()
 
-	obtainedJSONBytes, err := afero.ReadFile(fs, "/metadata.yml")
+	obtainedJSONBytes, err := afero.ReadFile(fs, "/metadata.json")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	obtainedJSON := string(obtainedJSONBytes)
 
@@ -51,26 +51,26 @@ func TestSaveMetadata(t *testing.T) {
 	}
 }
 
-func testNewMetadataEmpty(fs afero.Fs) metadata {
-	return metadata{
+func testNewMetadataEmpty(fs afero.Fs) Metadata {
+	return Metadata{
 		fs:       fs,
-		filePath: "/metadata.yml",
+		filePath: "/metadata.json",
 	}
 }
 
-func testNewMetadataWithData(fs afero.Fs) metadata {
-	metadata := metadata{
+func testNewMetadataWithData(fs afero.Fs) Metadata {
+	metadata := Metadata{
 		fs:       fs,
-		filePath: "/metadata.yml",
+		filePath: "/metadata.json",
 
-		Name:           "test",
-		Repo:           "/code/repository",
-		RepoPath:       "/", //TODO: support for specific path in repository
-		Version:        "0.0.1",
-		Commit:         "abcdefghijklmnopqrstuvwyz0123456789",
-		Flavour:        "default",
-		UserComponents: []userComponent{testNewUserComponent("user1"), testNewUserComponent("user2")},
-		Plugins:        []globalPlugin{testNewGlobalPlugin("plugin1"), testNewGlobalPlugin("plugin2")},
+		TerraformVersion: "0.12.24",
+		Repo:             "/code/repository",
+		RepoPath:         "/", //TODO: support for specific path in repository
+		Version:          "0.0.1",
+		Commit:           "abcdefghijklmnopqrstuvwyz0123456789",
+		Flavour:          "default",
+		UserComponents:   []userComponent{testNewUserComponent("user1"), testNewUserComponent("user2")},
+		Plugins:          []globalPlugin{testNewGlobalPlugin("plugin1"), testNewGlobalPlugin("plugin2")},
 	}
 
 	return metadata
@@ -103,12 +103,12 @@ func testNewGlobalPlugin(name string) globalPlugin {
 }
 
 func testWriteMetadataReferenceFile(fs afero.Fs) error {
-	return afero.WriteFile(fs, "/metadata.yml", []byte(testMetadataReferenceJSON()), 0644)
+	return afero.WriteFile(fs, "/metadata.json", []byte(testMetadataReferenceJSON()), 0644)
 }
 
 func testMetadataReferenceJSON() string {
 	return `{
-  "name": "test",
+  "terraform_version": "0.12.24",
   "repo": "/code/repository",
   "repo_path": "/",
   "version": "0.0.1",

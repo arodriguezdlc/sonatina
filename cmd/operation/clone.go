@@ -5,14 +5,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Add declares `sonatina add` command
-var Add = &cobra.Command{
-	Use:   "add",
+// Clone declares `sonatina clone` command
+var Clone = &cobra.Command{
+	Use:   "clone",
 	Short: "",
 	Long:  "",
-	//Run:   util.Help,
 }
 
 func init() {
-	Add.AddCommand(deploymentcmd.AddDeployment)
+	Clone.AddCommand(deploymentcmd.CloneDeployment)
 }

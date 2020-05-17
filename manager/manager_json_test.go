@@ -2,6 +2,7 @@ package manager
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -24,9 +25,11 @@ func TestListWithCorrectFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sort.Strings(result)
 
 	expectedArray := [2]string{"deploy1", "deploy2"}
 	expected := expectedArray[:]
+	sort.Strings(expected)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Incorrect array. Expected: %s, Obtained: %s", expected, result)
 	}

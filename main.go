@@ -1,5 +1,5 @@
 /*
-Copyright © 2019 ALBERTO RODRIGUEZ <arodriguezdlc@gmail.com>
+Copyright © 2020 ALBERTO RODRIGUEZ <arodriguezdlc@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,17 +16,17 @@ limitations under the License.
 package main
 
 import (
+	"os"
+
 	"github.com/arodriguezdlc/sonatina/cmd"
 	"github.com/arodriguezdlc/sonatina/manager"
+	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
 func main() {
-
-	setLogLevel(viper.GetString("LogLevel"))
-
 	var fs afero.Fs
 	if viper.GetBool("TestFilesystem") {
 		fs = afero.NewMemMapFs()
@@ -34,12 +34,30 @@ func main() {
 		fs = afero.NewOsFs()
 	}
 
-	err := manager.InitializeManager(fs)
+	logfile := setLogFile(fs)
+	setLogLevel(viper.GetString("LogLevel"))
+
+	err := manager.InitializeManager(fs, viper.GetString("ManagerConnector"))
 	if err != nil {
 		logrus.Fatalln(err)
 	}
 
-	cmd.Execute()
+	cmd.Execute(fs)
+	logfile.Close()
+}
+
+func setLogFile(fs afero.Fs) afero.File {
+	filepath, err := homedir.Expand(viper.GetString("LogFile"))
+	if err != nil {
+		logrus.WithError(err).Fatal("couldn't get log file path")
+	}
+
+	logfile, err := fs.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		logrus.WithError(err).Fatal("couldn't open file for logging")
+	}
+	logrus.SetOutput(logfile)
+	return logfile
 }
 
 func setLogLevel(level string) {

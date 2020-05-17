@@ -1,9 +1,14 @@
 package manager
 
+// TODO: Check that readed DeploymentMap is correct
+// TODO: some functions have to read json more than once. It could be optimized
+
 import (
 	"encoding/json"
+	"path/filepath"
 
 	"github.com/arodriguezdlc/sonatina/utils"
+	"github.com/pkg/errors"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
@@ -38,7 +43,7 @@ func newManagerJSON(fs afero.Fs, deploymentsPath string, deploymentsFilename str
 		return nil, err
 	}
 
-	filepath := path + "/" + deploymentsFilename
+	filepath := filepath.Join(path, deploymentsFilename)
 
 	manager = &managerJSON{
 		fs:              fs,
@@ -72,28 +77,24 @@ func (m *managerJSON) List() ([]string, error) {
 }
 
 // Get instantiates and returns a Deployment object with the specified name, that have been
-// added previously
+// initialized or cloned previously
 func (m *managerJSON) Get(name string) (deployment.Deployment, error) {
-	var dm deploymentMap
-	var di deploymentItem
-	var deploy deployment.Deployment
-	var err error
-	var ok bool
-
-	if dm, err = m.read(); err != nil {
+	dm, err := m.read()
+	if err != nil {
 		return nil, err
 	}
 
-	if di, ok = dm[name]; !ok {
+	di, ok := dm[name]
+	if !ok {
 		return nil, DeploymentDoNotExistsError{name}
 	}
 
-	deploy, err = deployment.NewDeployment(
+	deploy, err := deployment.Get(
 		name,
 		di.StorageRepoURI,
-		di.CodeRepoURI,
 		m.fs,
-		m.deploymentsPath+"/"+name)
+		filepath.Join(m.deploymentsPath, name),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -101,36 +102,63 @@ func (m *managerJSON) Get(name string) (deployment.Deployment, error) {
 	return deploy, nil
 }
 
-// Add instantiates a new Deployment object and returns it
-func (m *managerJSON) Add(name string, storageRepoURI string, codeRepoURI string) (deployment.Deployment, error) {
-	var dm deploymentMap
-	var di deploymentItem
-	var deploy deployment.Deployment
-	var err error
-	var ok bool
-
-	if dm, err = m.read(); err != nil {
-		return nil, err
+// Clone downloads deployment information from the storage repo initializes all the
+// background file structure of a sonatina deployment
+func (m *managerJSON) Clone(name string, storageRepoURI string, codeRepoURI string) error {
+	dm, err := m.read()
+	if err != nil {
+		return err
 	}
 
-	if _, ok = dm[name]; ok {
-		return nil, DeploymentAlreadyExistsError{name}
+	if _, ok := dm[name]; ok {
+		return DeploymentAlreadyExistsError{name}
 	}
 
-	if deploy, err = deployment.NewDeployment(name, storageRepoURI, codeRepoURI, m.fs, m.deploymentsPath+"/"+name); err != nil {
-		return nil, err
+	err = deployment.Clone(name, storageRepoURI, m.fs, filepath.Join(m.deploymentsPath, name))
+	if err != nil {
+		return err
 	}
 
-	di = deploymentItem{
+	di := deploymentItem{
 		StorageRepoURI: storageRepoURI,
 		CodeRepoURI:    codeRepoURI,
 	}
 	m.add(name, di, &dm)
 	if err = m.save(dm); err != nil {
-		return nil, err
+		return err
 	}
 
-	return deploy, nil
+	return nil
+}
+
+func (m *managerJSON) Create(name string, storageRepoURI string, codeRepoURI string, codeRepoPath string,
+	terraformVersion string, flavour string) error {
+
+	dm, err := m.read()
+	if err != nil {
+		return err
+	}
+
+	if _, ok := dm[name]; ok {
+		return DeploymentAlreadyExistsError{name}
+	}
+
+	err = deployment.Create(name, storageRepoURI, codeRepoURI, codeRepoPath,
+		terraformVersion, flavour, m.fs, filepath.Join(m.deploymentsPath, name))
+	if err != nil {
+		return err
+	}
+
+	di := deploymentItem{
+		StorageRepoURI: storageRepoURI,
+		CodeRepoURI:    codeRepoURI,
+	}
+	m.add(name, di, &dm)
+	if err = m.save(dm); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete removes the deployment from the list
@@ -148,37 +176,6 @@ func (m *managerJSON) Delete(name string) error {
 
 	err = m.delete(name)
 	return err
-}
-
-func (m *managerJSON) exist(name string) (bool, error) {
-	deploys, err := m.read()
-	if err != nil {
-		return false, err
-	}
-
-	_, ok := deploys[name]
-	return ok, err
-}
-
-func (m *managerJSON) get(name string) (deploymentMap, error) {
-	var (
-		result  deploymentMap
-		deploys deploymentMap
-		item    deploymentItem
-		err     error
-		ok      bool
-	)
-
-	if deploys, err = m.read(); err != nil {
-		return nil, err
-	}
-
-	if item, ok = deploys[name]; !ok {
-		return nil, DeploymentDoNotExistsError{name}
-	}
-
-	result[name] = item
-	return result, err
 }
 
 func (m *managerJSON) delete(name string) error {
@@ -207,12 +204,12 @@ func (m *managerJSON) read() (deploymentMap, error) {
 
 	data, err := afero.ReadFile(m.fs, m.filePath)
 	if err != nil {
-		return d, err
+		return d, errors.Wrap(err, "couldn't read deployments file")
 	}
 
 	err = json.Unmarshal(data, &d)
 	if err != nil {
-		logrus.Errorln(err)
+		return d, errors.Wrap(err, "couldn't unmarshal deployments json file")
 	}
 
 	return d, err
@@ -221,17 +218,13 @@ func (m *managerJSON) read() (deploymentMap, error) {
 func (m *managerJSON) save(d deploymentMap) error {
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "couldn't marshal deployemnts json file")
 	}
 
 	err = afero.WriteFile(m.fs, m.filePath, data, 0644)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "couldn't write deployments file")
 	}
 
 	return nil
 }
-
-// TODO: Check that readed DeploymentMap is correct
-
-// TODO: some functions have to read json more than once. It could be optimized

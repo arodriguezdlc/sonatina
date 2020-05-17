@@ -1,3 +1,0 @@
-package gitw
-
-// TODO: testing

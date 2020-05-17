@@ -2,22 +2,26 @@ package deployment
 
 import (
 	"encoding/json"
+	"path/filepath"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
-type metadata struct {
+const metadataFileName string = "metadata.json"
+
+type Metadata struct {
 	fs       afero.Fs
 	filePath string
 
-	Name           string          `json:"name"`
-	Repo           string          `json:"repo"`
-	RepoPath       string          `json:"repo_path"`
-	Version        string          `json:"version"`
-	Commit         string          `json:"commit"`
-	Flavour        string          `json:"flavour"`
-	UserComponents []userComponent `json:"user_components"`
-	Plugins        []globalPlugin  `json:"plugins"`
+	TerraformVersion string          `json:"terraform_version"`
+	Repo             string          `json:"repo"`
+	RepoPath         string          `json:"repo_path"`
+	Version          string          `json:"version"`
+	Commit           string          `json:"commit"`
+	Flavour          string          `json:"flavour"`
+	UserComponents   []userComponent `json:"user_components"`
+	Plugins          []globalPlugin  `json:"plugins"`
 }
 
 type userComponent struct {
@@ -38,47 +42,36 @@ type userPlugin struct {
 	Flavour string `json:"flavour"`
 }
 
-func newMetadata(deployment DeploymentImpl) metadata {
-	metadata := metadata{
-		fs:       deployment.fs,
-		filePath: deployment.Vars.path + "/metadata.yml",
-
-		Name:           deployment.Name,
-		Repo:           deployment.CodeRepoURL,
-		RepoPath:       "/", //TODO: support for specific path in repository
-		Version:        "",
-		Commit:         "",
-		Flavour:        "",
-		UserComponents: nil,
-		Plugins:        nil,
+func newMetadata(fs afero.Fs, varsPath string) *Metadata {
+	return &Metadata{
+		fs:       fs,
+		filePath: filepath.Join(varsPath, metadataFileName),
 	}
-
-	return metadata
 }
 
-func (m *metadata) load() error {
+func (m *Metadata) load() error {
 	data, err := afero.ReadFile(m.fs, m.filePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't read file %s", m.filePath)
 	}
 
 	err = json.Unmarshal(data, m)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't unmarshal json from file %s", m.filePath)
 	}
 
 	return nil
 }
 
-func (m *metadata) save() error {
+func (m *Metadata) save() error {
 	data, err := json.MarshalIndent(*m, "", "  ")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "couldn't marshal json")
 	}
 
 	err = afero.WriteFile(m.fs, m.filePath, data, 0644)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "couldn't write metadata file")
 	}
 
 	return nil

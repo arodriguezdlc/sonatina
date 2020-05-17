@@ -3,6 +3,8 @@ package deployment
 import (
 	"path/filepath"
 
+	"github.com/pkg/errors"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 )
@@ -10,6 +12,11 @@ import (
 //Deployment object contains all information about a deployment
 // TODO: improve explanation and interface definition
 type Deployment interface {
+	GenerateWorkdirGlobal() (string, error)
+	GenerateWorkdirUser(user string) (string, error)
+	TerraformVersion() string
+	CodeRepoURL() string
+	CodeRepoPath() string
 	Purge() error
 }
 
@@ -23,28 +30,85 @@ type DeploymentImpl struct {
 	State *State
 	Vars  *Vars
 
-	CodeRepoURL string //TODO: Delete and save on CTD instead
-	Base        *CTD
-	Plugins     [](*CTD)
+	Base    *CTD
+	Plugins [](*CTD)
 
 	Workdir *Workdir
 }
 
-// NewDeployment creates and initializes a new Deployment object
-func NewDeployment(name string, storageRepoURL string, codeRepoURL string, fs afero.Fs, deploymentPath string) (Deployment, error) {
-	deploy := &DeploymentImpl{
-		Name:        name,
-		fs:          fs,
-		path:        deploymentPath,
-		Vars:        nil,
-		State:       nil,
-		CodeRepoURL: codeRepoURL,
-		Base:        nil,
-		Plugins:     nil,
+// GenerateWorkdirGlobal combines deployment CTDs (main and plugins) to generate
+// the CTD to be applied by terraform. Returns main path where terraform must
+// be executed.
+func (d *DeploymentImpl) GenerateWorkdirGlobal() (string, error) {
+	err := d.Workdir.GenerateGlobal()
+	if err != nil {
+		return "", err
+	}
+	return d.Workdir.CTD.main.globalPath(), nil
+}
+
+// GenerateWorkdirUser combines deployment CTDs (main and plugins) to generate
+// the CTD to be applied by terraform
+func (d *DeploymentImpl) GenerateWorkdirUser(user string) (string, error) {
+	err := d.Workdir.GenerateUser(user)
+	if err != nil {
+		return "", err
+	}
+	return d.Workdir.CTD.main.userPath(user), nil
+}
+
+// TerraformVersion returns the terraform version that is being using with this
+// specific deployment.
+func (d *DeploymentImpl) TerraformVersion() string {
+	return d.Vars.Metadata.TerraformVersion
+}
+
+// CodeRepoURL returns the URL where is the terraform code that describes
+// infrastructure to be deployed in a sonatina way.
+func (d *DeploymentImpl) CodeRepoURL() string {
+	return d.Vars.Metadata.Repo
+}
+
+// CodeRepoPath returns the path inside the CodeRepo where is the terraform
+// code that describes infrastructure to be deployed in a sonatina way.
+func (d *DeploymentImpl) CodeRepoPath() string {
+	return d.Vars.Metadata.RepoPath
+}
+
+// Purge removes all local files related to a deployment
+func (d *DeploymentImpl) Purge() error {
+	logrus.WithFields(logrus.Fields{
+		"deployment": d.Name,
+		"path":       d.path}).Debug("purge deployment files")
+
+	err := d.fs.RemoveAll(d.path)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't remove dir %s", d.path)
+	}
+	return nil
+}
+
+// Get creates and initializes a new Deployment object from local storage
+func Get(name string, storageRepoURL string, fs afero.Fs, deploymentPath string) (Deployment, error) {
+	deploy := newDeploymentImpl(name, fs, deploymentPath)
+
+	// TODO: paralelize, using contexts to cancel operations
+	err := deploy.getVars(storageRepoURL)
+	if err != nil {
+		return nil, err
 	}
 
-	//TODO: initialize code repository using codeRepoURL
-	err := deploy.initialize(storageRepoURL)
+	err = deploy.getState(storageRepoURL)
+	if err != nil {
+		return nil, err
+	}
+
+	err = deploy.newDeploymentCTDs()
+	if err != nil {
+		return nil, err
+	}
+
+	err = deploy.newWorkdir()
 	if err != nil {
 		return nil, err
 	}
@@ -52,61 +116,138 @@ func NewDeployment(name string, storageRepoURL string, codeRepoURL string, fs af
 	return deploy, nil
 }
 
-func (d *DeploymentImpl) newWorkdir() (Workdir, error) {
-	path := filepath.Join(d.path, "workdir")
+// Clone creates and initializes a new Deployment object that has not been created before on any repository
+func Clone(name string, storageRepoURL string, fs afero.Fs, deploymentPath string) error {
+	deploy := newDeploymentImpl(name, fs, deploymentPath)
 
-	workdir := Workdir{
-		fs:   d.fs,
-		path: path,
-
-		deployment: d,
-
-		CTD: nil,
-	}
-
-	err := d.fs.MkdirAll(path, 0755)
+	// TODO: paralelize
+	err := deploy.cloneVars(storageRepoURL)
 	if err != nil {
-		return workdir, err
-	}
-
-	return workdir, nil
-}
-
-// Purge removes all local files related to a deployment
-func (d *DeploymentImpl) Purge() error {
-	logrus.Debugln("deploymentImpl.Purge: recursive deletion on deployment path " + d.path)
-	return d.fs.RemoveAll(d.path)
-}
-
-func (d *DeploymentImpl) initialize(storageRepoURL string) error {
-	//Create deployment directory (idempotent operation)
-	err := d.fs.MkdirAll(d.path, 0755)
-	if err != nil {
+		deploy.rollbackInitialize()
 		return err
 	}
 
-	vars, err := NewVars(d.fs, filepath.Join(d.path, "variables"), storageRepoURL)
+	err = deploy.cloneState(storageRepoURL)
 	if err != nil {
-		d.rollbackInitialize()
+		deploy.rollbackInitialize()
 		return err
 	}
 
-	state, err := NewState(d.fs, filepath.Join(d.path, "state"), storageRepoURL)
+	err = deploy.newDeploymentCTDs()
 	if err != nil {
-		d.rollbackInitialize()
+		deploy.rollbackInitialize()
 		return err
 	}
 
-	d.Vars = vars
-	d.State = state
+	err = deploy.cloneDeploymentCTDs()
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
+
+	err = deploy.newWorkdir()
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
 
 	return nil
 }
 
-func (d *DeploymentImpl) rollbackInitialize() error {
-	err := d.Purge()
+// Create creates and initializes a new Deployment object that has not been created before on any repository
+func Create(name string, storageRepoURL string, codeRepoURL string, codeRepoPath string,
+	terraformVersion string, flavour string, fs afero.Fs, deploymentPath string) error {
+
+	deploy := newDeploymentImpl(name, fs, deploymentPath)
+
+	// TODO: paralelize
+	err := deploy.createVars(storageRepoURL, terraformVersion, codeRepoURL, codeRepoPath, flavour)
 	if err != nil {
-		logrus.Errorln("deploymentImpl.rollbackInitialize: Error executing rollback for deployment " + d.Name)
+		deploy.rollbackInitialize()
+		return err
 	}
-	return err
+
+	err = deploy.createState(storageRepoURL)
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
+
+	err = deploy.newDeploymentCTDs()
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
+
+	err = deploy.cloneDeploymentCTDs()
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
+
+	err = deploy.newWorkdir()
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
+
+	return nil
+}
+
+func newDeploymentImpl(name string, fs afero.Fs, deploymentPath string) *DeploymentImpl {
+	return &DeploymentImpl{
+		fs:   fs,
+		path: deploymentPath,
+
+		Name:    name,
+		Vars:    nil,
+		State:   nil,
+		Base:    nil, //TODO
+		Plugins: nil, //TODO
+		Workdir: nil,
+	}
+}
+
+func (d *DeploymentImpl) rollbackInitialize() error {
+	return d.Purge()
+}
+
+func (d *DeploymentImpl) newDeploymentCTDs() error {
+	basePath := filepath.Join(d.path, "code", "base")
+
+	err := d.fs.MkdirAll(basePath, 0755)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create directory")
+	}
+
+	d.Base = NewCTD(d.fs, basePath, d.CodeRepoURL(), d.CodeRepoPath())
+
+	for _, plugin := range d.Vars.Metadata.Plugins {
+		pluginPath := filepath.Join(d.path, "code", "plugins", plugin.Name)
+
+		err := d.fs.MkdirAll(pluginPath, 0755)
+		if err != nil {
+			return errors.Wrap(err, "couldn't create directory")
+		}
+
+		d.Plugins = append(d.Plugins, NewCTD(d.fs, pluginPath, plugin.Repo, plugin.RepoPath))
+	}
+
+	return nil
+}
+
+func (d *DeploymentImpl) cloneDeploymentCTDs() error {
+	err := d.Base.Clone()
+	if err != nil {
+		return err
+	}
+
+	for _, plugin := range d.Plugins {
+		err = plugin.Clone()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

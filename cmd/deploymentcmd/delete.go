@@ -5,7 +5,6 @@ import (
 
 	"github.com/arodriguezdlc/sonatina/manager"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -15,18 +14,18 @@ var DeleteDeployment = &cobra.Command{
 	Short: "delete deployment",
 	Long:  `delete deployment`,
 	Args:  cobra.ExactArgs(1),
-	Run:   deleteDeploymentExecution,
+	RunE:  deleteDeploymentExecution,
 }
 
-func deleteDeploymentExecution(cmd *cobra.Command, args []string) {
-	var err error
-
+func deleteDeploymentExecution(command *cobra.Command, args []string) error {
 	deployName := args[0]
 	m := manager.GetManager()
 
-	if err = m.Delete(deployName); err != nil {
-		log.Fatalln(err)
+	err := m.Delete(deployName)
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("Deleted")
+	return nil
 }
