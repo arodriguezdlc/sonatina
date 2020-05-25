@@ -31,7 +31,7 @@ type DeploymentImpl struct {
 	Vars  *Vars
 
 	Base    *CTD
-	Plugins [](*CTD)
+	Plugins [](*CTD) // The key is the plugin name
 
 	Workdir *Workdir
 }

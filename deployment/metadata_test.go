@@ -51,6 +51,32 @@ func TestSaveMetadata(t *testing.T) {
 	}
 }
 
+func TestListGlobalPlugins(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	metadata := testNewMetadataWithData(fs)
+
+	expected := []string{"plugin1", "plugin2"}
+	obtained := metadata.ListGlobalPlugins()
+
+	if !reflect.DeepEqual(expected, obtained) {
+		t.Errorf("Incorrect global plugin list from metadata.\n\n Expected:\n%s\n\n Obtained:\n%s\n", expected, obtained)
+	}
+}
+
+func TestListUserPlugins(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	metadata := testNewMetadataWithData(fs)
+
+	expected := []string{"plugin1", "plugin2"}
+	obtained := metadata.ListUserPlugins("user1")
+
+	if !reflect.DeepEqual(expected, obtained) {
+		t.Errorf("Incorrect global plugin list from metadata.\n\n Expected:\n%s\n\n Obtained:\n%s\n", expected, obtained)
+	}
+}
+
 func testNewMetadataEmpty(fs afero.Fs) Metadata {
 	return Metadata{
 		fs:       fs,
@@ -69,16 +95,16 @@ func testNewMetadataWithData(fs afero.Fs) Metadata {
 		Version:          "0.0.1",
 		Commit:           "abcdefghijklmnopqrstuvwyz0123456789",
 		Flavour:          "default",
-		UserComponents:   []userComponent{testNewUserComponent("user1"), testNewUserComponent("user2")},
+		UserComponents:   map[string]userComponent{"user1": testNewUserComponent(), "user2": testNewUserComponent()},
 		Plugins:          []globalPlugin{testNewGlobalPlugin("plugin1"), testNewGlobalPlugin("plugin2")},
 	}
 
 	return metadata
 }
 
-func testNewUserComponent(name string) userComponent {
+func testNewUserComponent() userComponent {
 	userComponent := userComponent{
-		Name:    name,
+		Flavour: "default",
 		Plugins: []userPlugin{testNewUserPlugin("plugin1"), testNewUserPlugin("plugin2")},
 	}
 
@@ -87,8 +113,7 @@ func testNewUserComponent(name string) userComponent {
 
 func testNewUserPlugin(name string) userPlugin {
 	return userPlugin{
-		Name:    name,
-		Flavour: "default",
+		Name: name,
 	}
 }
 
@@ -114,34 +139,30 @@ func testMetadataReferenceJSON() string {
   "version": "0.0.1",
   "commit": "abcdefghijklmnopqrstuvwyz0123456789",
   "flavour": "default",
-  "user_components": [
-    {
-      "name": "user1",
+  "user_components": {
+    "user1": {
       "plugins": [
         {
-          "name": "plugin1",
-          "flavour": "default"
+          "name": "plugin1"
         },
         {
-          "name": "plugin2",
-          "flavour": "default"
+          "name": "plugin2"
         }
-      ]
+      ],
+      "flavour": "default"
     },
-    {
-      "name": "user2",
+    "user2": {
       "plugins": [
         {
-          "name": "plugin1",
-          "flavour": "default"
+          "name": "plugin1"
         },
         {
-          "name": "plugin2",
-          "flavour": "default"
+          "name": "plugin2"
         }
-      ]
+      ],
+      "flavour": "default"
     }
-  ],
+  },
   "plugins": [
     {
       "name": "plugin1",

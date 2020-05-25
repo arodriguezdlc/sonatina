@@ -17,8 +17,9 @@ type CTD struct {
 	RepoURL  string
 	RepoPath string
 
-	main    main
-	modules modules
+	main    *main
+	modules *modules
+	vtd     *VTD
 }
 
 type main struct {
@@ -44,13 +45,17 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) *CTD {
 		RepoURL:  repoURL,
 		RepoPath: repoPath,
 
-		main: main{
+		main: &main{
 			fs:   fs,
 			path: filepath.Join(path, "main"),
 		},
-		modules: modules{
+		modules: &modules{
 			fs:   fs,
 			path: filepath.Join(path, "modules"),
+		},
+		vtd: &VTD{
+			fs:   fs,
+			path: filepath.Join(path, "vtd"),
 		},
 	}
 	return ctd

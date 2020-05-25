@@ -14,19 +14,19 @@ type Metadata struct {
 	fs       afero.Fs
 	filePath string
 
-	TerraformVersion string          `json:"terraform_version"`
-	Repo             string          `json:"repo"`
-	RepoPath         string          `json:"repo_path"`
-	Version          string          `json:"version"`
-	Commit           string          `json:"commit"`
-	Flavour          string          `json:"flavour"`
-	UserComponents   []userComponent `json:"user_components"`
-	Plugins          []globalPlugin  `json:"plugins"`
+	TerraformVersion string                   `json:"terraform_version"`
+	Repo             string                   `json:"repo"`
+	RepoPath         string                   `json:"repo_path"`
+	Version          string                   `json:"version"`
+	Commit           string                   `json:"commit"`
+	Flavour          string                   `json:"flavour"`
+	UserComponents   map[string]userComponent `json:"user_components"`
+	Plugins          []globalPlugin           `json:"plugins"`
 }
 
 type userComponent struct {
-	Name    string       `json:"name"`
 	Plugins []userPlugin `json:"plugins"`
+	Flavour string       `json:"flavour"`
 }
 
 type globalPlugin struct {
@@ -38,8 +38,23 @@ type globalPlugin struct {
 }
 
 type userPlugin struct {
-	Name    string `json:"name"`
-	Flavour string `json:"flavour"`
+	Name string `json:"name"`
+}
+
+func (m *Metadata) ListGlobalPlugins() []string {
+	list := []string{}
+	for _, plugin := range m.Plugins {
+		list = append(list, plugin.Name)
+	}
+	return list
+}
+
+func (m *Metadata) ListUserPlugins(user string) []string {
+	list := []string{}
+	for _, plugin := range m.UserComponents[user].Plugins {
+		list = append(list, plugin.Name)
+	}
+	return list
 }
 
 func newMetadata(fs afero.Fs, varsPath string) *Metadata {
