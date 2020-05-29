@@ -30,3 +30,24 @@ func (o *option) render() string {
 func emptyString(s string) bool {
 	return strings.TrimSpace(s) == ""
 }
+
+func (t *Terraform) varFilesOptions(varFiles []string) *options {
+	options := options{}
+
+	for _, file := range varFiles {
+		option := option{
+			key:   "-var-file",
+			value: file,
+		}
+		options = append(options, option)
+	}
+
+	return &options
+}
+
+func (t *Terraform) stateFileOption(stateFile string) *option {
+	return &option{
+		key:   "-state",
+		value: stateFile,
+	}
+}

@@ -19,6 +19,14 @@ type State struct {
 	RepoURL string
 }
 
+func (s *State) FilePathGlobal() string {
+	return filepath.Join(s.path, "global", "terraform.tfstate")
+}
+
+func (s *State) FilePathUser(user string) string {
+	return filepath.Join(s.path, "user", user, "terraform.tfstate")
+}
+
 // Save method stores terraform state information on git repository
 func (s *State) Save() {
 	// TODO

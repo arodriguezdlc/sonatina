@@ -36,7 +36,7 @@ func NewVTD(fs afero.Fs, path string) *VTD {
 			path: filepath.Join(path, "config"),
 		},
 		flavour: &flavour{
-			path: filepath.Join(path, "config"),
+			path: filepath.Join(path, "flavour"),
 		},
 		static: &static{
 			path: filepath.Join(path, "static"),

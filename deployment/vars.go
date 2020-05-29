@@ -152,7 +152,7 @@ func (v *Vars) copyConfigUser(user string, vtd *VTD, prefix string) (string, err
 
 func (v *Vars) copyFlavourGlobal(vtd *VTD, prefix string, flavour string) (string, error) {
 	src := vtd.flavour.globalFile(flavour)
-	dst := filepath.Join(v.path, "global", prefix+"_flavour_", flavour, ".tfvars")
+	dst := filepath.Join(v.path, "global", prefix+"_flavour_"+flavour+".tfvars")
 
 	err := utils.FileCopy(v.fs, src, dst)
 	if err != nil {
@@ -164,7 +164,7 @@ func (v *Vars) copyFlavourGlobal(vtd *VTD, prefix string, flavour string) (strin
 
 func (v *Vars) copyFlavourUser(user string, vtd *VTD, prefix string, flavour string) (string, error) {
 	src := vtd.flavour.userFile(flavour)
-	dst := filepath.Join(v.path, "user", user, prefix+"_flavour_", flavour, ".tfvars")
+	dst := filepath.Join(v.path, "user", user, prefix+"_flavour_"+flavour+".tfvars")
 
 	err := utils.FileCopy(v.fs, src, dst)
 	if err != nil {

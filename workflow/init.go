@@ -35,7 +35,3 @@ func (i *InitWorkflow) RunGlobal() error {
 func (i *InitWorkflow) RunUser(user string) error {
 	return nil
 }
-
-func (i *InitWorkflow) configureCommand() {
-
-}

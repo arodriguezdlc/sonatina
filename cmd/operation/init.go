@@ -15,10 +15,6 @@ var Init = &cobra.Command{
 	RunE:  initExecution,
 }
 
-//To define flags
-var deployName string
-var userComponent string
-
 func init() {
 	Init.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
 	Init.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired

@@ -66,9 +66,11 @@ func init() {
 	rootCmd.SilenceUsage = true
 
 	// Register CRUD subcommands
+	rootCmd.AddCommand(operation.Apply)
 	rootCmd.AddCommand(operation.Clone)
 	rootCmd.AddCommand(operation.Create)
 	rootCmd.AddCommand(operation.Delete)
+	rootCmd.AddCommand(operation.Destroy)
 	rootCmd.AddCommand(operation.Init)
 	rootCmd.AddCommand(operation.List)
 }

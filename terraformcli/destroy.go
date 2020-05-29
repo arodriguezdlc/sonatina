@@ -6,10 +6,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (t *Terraform) Init(path string) error {
+func (t *Terraform) Destroy(path string, varFiles []string, stateFile string) error {
 	args := []string{}
-	args = append(args, "init")
-	args = append(args, t.initDefaultOptions().array()...)
+	args = append(args, "destroy")
+	args = append(args, t.destroyDefaultOptions().array()...)
+	args = append(args, t.varFilesOptions(varFiles).array()...)
+	args = append(args, t.stateFileOption(stateFile).render())
 	logrus.WithField("args", args).Info("executing terraform command")
 
 	cmd := exec.Command(t.BinaryPath(), args...)
@@ -18,11 +20,11 @@ func (t *Terraform) Init(path string) error {
 	return t.runPrintingAll(cmd)
 }
 
-func (t *Terraform) initDefaultOptions() *options {
+func (t *Terraform) destroyDefaultOptions() *options {
 	return &options{
 		option{
-			key:   "backend",
-			value: "false",
+			key:   "auto-approve",
+			value: "",
 		},
 		option{
 			key:   "input",

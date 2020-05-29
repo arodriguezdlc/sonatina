@@ -14,6 +14,10 @@ import (
 type Deployment interface {
 	GenerateWorkdirGlobal() (string, error)
 	GenerateWorkdirUser(user string) (string, error)
+	GenerateVariablesGlobal() ([]string, error)
+	GenerateVariablesUser(user string) ([]string, error)
+	StateFilePathGlobal() string
+	StateFilePathUser(user string) string
 	TerraformVersion() string
 	CodeRepoURL() string
 	CodeRepoPath() string
@@ -55,6 +59,22 @@ func (d *DeploymentImpl) GenerateWorkdirUser(user string) (string, error) {
 		return "", err
 	}
 	return d.Workdir.CTD.main.userPath(user), nil
+}
+
+func (d *DeploymentImpl) GenerateVariablesGlobal() ([]string, error) {
+	return d.Vars.GenerateGlobal()
+}
+
+func (d *DeploymentImpl) GenerateVariablesUser(user string) ([]string, error) {
+	return d.Vars.GenerateUser(user)
+}
+
+func (d *DeploymentImpl) StateFilePathGlobal() string {
+	return d.State.FilePathGlobal()
+}
+
+func (d *DeploymentImpl) StateFilePathUser(user string) string {
+	return d.State.FilePathUser(user)
 }
 
 // TerraformVersion returns the terraform version that is being using with this

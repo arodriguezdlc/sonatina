@@ -53,10 +53,7 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) *CTD {
 			fs:   fs,
 			path: filepath.Join(path, "modules"),
 		},
-		vtd: &VTD{
-			fs:   fs,
-			path: filepath.Join(path, "vtd"),
-		},
+		vtd: NewVTD(fs, filepath.Join(path, "vtd")),
 	}
 	return ctd
 }
