@@ -150,25 +150,18 @@ func testNewWorkdir(fs afero.Fs) (*Workdir, error) {
 	base := NewCTD(fs, filepath.Join("deployment", "base"), "", "")
 	plugin1 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin1"), "", "")
 	plugin2 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin2"), "", "")
-	workdirCTD := NewCTD(fs, filepath.Join("deployment", "workdir"), "", "")
 
 	deploy := &DeploymentImpl{
 		Name: "deployment",
 		fs:   fs,
-		path: "/deployment",
+		path: filepath.Join("deployment"),
 
 		Base:    base,
 		Plugins: []*CTD{plugin1, plugin2},
 	}
 
-	workdir := &Workdir{
-		fs:         fs,
-		path:       "/deployment/workdir",
-		deployment: deploy,
-		CTD:        workdirCTD,
-	}
-
-	return workdir, nil
+	err := deploy.newWorkdir()
+	return deploy.Workdir, err
 }
 
 func testWordirCreateDeploymentDirectories(fs afero.Fs) error {
@@ -290,10 +283,10 @@ func testWorkdirCTDFiles(path string, filePrefix string) []string {
 	return []string{
 		filepath.Join(path, "main", "global", filePrefix+"file1.tf"),
 		filepath.Join(path, "main", "global", filePrefix+"file2.tf"),
-		filepath.Join(path, "main", "user", "user1", filePrefix+"file1.tf"),
-		filepath.Join(path, "main", "user", "user1", filePrefix+"file2.tf"),
-		filepath.Join(path, "main", "user", "user2", filePrefix+"file1.tf"),
-		filepath.Join(path, "main", "user", "user2", filePrefix+"file2.tf"),
+		filepath.Join(path, "main", "user", filePrefix+"file1.tf"),
+		filepath.Join(path, "main", "user", filePrefix+"file2.tf"),
+		filepath.Join(path, "main", "user", filePrefix+"file1.tf"),
+		filepath.Join(path, "main", "user", filePrefix+"file2.tf"),
 		filepath.Join(path, "modules", filePrefix+"module1", "file1.tf"),
 		filepath.Join(path, "modules", filePrefix+"module1", "file2.tf"),
 		filepath.Join(path, "modules", filePrefix+"module2", "file1.tf"),

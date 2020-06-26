@@ -2,6 +2,7 @@ package operation
 
 import (
 	"github.com/arodriguezdlc/sonatina/cmd/deploymentcmd"
+	"github.com/arodriguezdlc/sonatina/cmd/usercomponent"
 	"github.com/spf13/cobra"
 )
 
@@ -14,4 +15,5 @@ var Create = &cobra.Command{
 
 func init() {
 	Create.AddCommand(deploymentcmd.CreateDeployment)
+	Create.AddCommand(usercomponent.CreateUsercomponent)
 }

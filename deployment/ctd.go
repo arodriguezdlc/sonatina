@@ -68,8 +68,8 @@ func (ctd *CTD) ListMainGlobalFiles() ([]string, error) {
 }
 
 // ListMainUserFiles returns all TF files from the user main folder
-func (ctd *CTD) ListMainUserFiles(user string) ([]string, error) {
-	slice, err := afero.Glob(ctd.main.fs, filepath.Join(ctd.main.userPath(user), "/*.tf"))
+func (ctd *CTD) ListMainUserFiles() ([]string, error) {
+	slice, err := afero.Glob(ctd.main.fs, filepath.Join(ctd.main.userPath(), "/*.tf"))
 	if err != nil {
 		return slice, errors.Wrap(err, "cannot list main user files")
 	}
@@ -104,6 +104,6 @@ func (m *main) globalPath() string {
 	return filepath.Join(m.path, "global")
 }
 
-func (m *main) userPath(user string) string {
-	return filepath.Join(m.path, "user", user)
+func (m *main) userPath() string {
+	return filepath.Join(m.path, "user")
 }

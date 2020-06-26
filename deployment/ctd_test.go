@@ -43,26 +43,13 @@ func TestListUserFiles(t *testing.T) {
 
 	ctd := NewCTD(fs, "/", "example.com", "/")
 
-	obtainedFileList, err := ctd.ListMainUserFiles("user1")
+	obtainedFileList, err := ctd.ListMainUserFiles()
 	if err != nil {
 		t.Error(err)
 	}
 	expectedFileList := []string{
-		"/main/user/user1/file1.tf",
-		"/main/user/user1/file2.tf",
-	}
-
-	if !reflect.DeepEqual(expectedFileList, obtainedFileList) {
-		t.Errorf("Incorrect file list.\n\n Expected: %v\n\n Obtained: %v\n", expectedFileList, obtainedFileList)
-	}
-
-	obtainedFileList, err = ctd.ListMainUserFiles("user2")
-	if err != nil {
-		t.Error(err)
-	}
-	expectedFileList = []string{
-		"/main/user/user2/file1.tf",
-		"/main/user/user2/file2.tf",
+		"/main/user/file1.tf",
+		"/main/user/file2.tf",
 	}
 
 	if !reflect.DeepEqual(expectedFileList, obtainedFileList) {
@@ -93,8 +80,6 @@ func testCTDDirectories() []string {
 		"/main",
 		"/main/global",
 		"/main/user",
-		"/main/user/user1",
-		"/main/user/user2",
 		"/modules/module1",
 		"/modules/module2",
 		"/vtd/",
@@ -105,10 +90,8 @@ func testCTDFiles() []string {
 	return []string{
 		"/main/global/file1.tf",
 		"/main/global/file2.tf",
-		"/main/user/user1/file1.tf",
-		"/main/user/user1/file2.tf",
-		"/main/user/user2/file1.tf",
-		"/main/user/user2/file2.tf",
+		"/main/user/file1.tf",
+		"/main/user/file2.tf",
 		"/modules/module1/file1.tf",
 		"/modules/module1/file2.tf",
 		"/modules/module2/file1.tf",

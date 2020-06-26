@@ -5,6 +5,7 @@ import (
 
 	"github.com/arodriguezdlc/sonatina/gitw"
 	"github.com/arodriguezdlc/sonatina/utils"
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -25,6 +26,34 @@ func (s *State) FilePathGlobal() string {
 
 func (s *State) FilePathUser(user string) string {
 	return filepath.Join(s.path, "user", user, "terraform.tfstate")
+}
+
+// CreateUsercomponent adds a new user component to state,
+// initializing the directory tree
+func (s *State) CreateUsercomponent(user string) error {
+	err := s.fs.MkdirAll(s.UsercomponentPath(user), 0755)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create directory")
+	}
+
+	return nil
+}
+
+// DeleteUsercomponent deletes an user component from state and
+// performs a directory cleanup
+func (s *State) DeleteUsercomponent(user string) error {
+	err := s.fs.RemoveAll(s.UsercomponentPath(user))
+	if err != nil {
+		return errors.Wrap(err, "couldn't remove dir recursively")
+	}
+
+	return nil
+}
+
+// UsercomponentPath returns de state directory path for a
+// specified user
+func (s *State) UsercomponentPath(user string) string {
+	return filepath.Join(s.path, "user", user)
 }
 
 // Save method stores terraform state information on git repository

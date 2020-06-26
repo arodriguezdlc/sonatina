@@ -26,7 +26,10 @@ func listDeploymentExecution(command *cobra.Command, args []string) error {
 
 	fmt.Fprintln(os.Stdout, "DEPLOYMENTS:")
 	for _, element := range list {
-		fmt.Fprintln(os.Stdout, element)
+		_, err = fmt.Fprintln(os.Stdout, element)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

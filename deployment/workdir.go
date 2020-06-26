@@ -13,8 +13,6 @@ type Workdir struct {
 	path string
 
 	deployment *DeploymentImpl
-
-	CTD *CTD
 }
 
 func (w *Workdir) GenerateGlobal() error {
@@ -63,8 +61,6 @@ func (d *DeploymentImpl) newWorkdir() error {
 		path: path,
 
 		deployment: d,
-
-		CTD: NewCTD(d.fs, path, "", ""),
 	}
 
 	err := d.fs.MkdirAll(path, 0755)
@@ -76,20 +72,32 @@ func (d *DeploymentImpl) newWorkdir() error {
 	return nil
 }
 
+func (w *Workdir) mainGlobalPath() string {
+	return filepath.Join(w.path, "main", "global")
+}
+
+func (w *Workdir) mainUserPath(user string) string {
+	return filepath.Join(w.path, "main", "user", user)
+}
+
+func (w *Workdir) modulesPath() string {
+	return filepath.Join(w.path, "modules")
+}
+
 func (w *Workdir) copyMainGlobal() error {
 	fileList, err := w.calculateMainGlobalFileList()
 	if err != nil {
 		return err
 	}
 
-	mainPath := w.CTD.main.globalPath()
+	mainPath := w.mainGlobalPath()
 	err = w.fs.MkdirAll(mainPath, 0755)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't create directory %s", mainPath)
 	}
 
 	for _, src := range fileList {
-		dst := filepath.Join(w.CTD.main.globalPath(), filepath.Base(src))
+		dst := filepath.Join(w.mainGlobalPath(), filepath.Base(src))
 		err = utils.FileCopy(w.fs, src, dst)
 		if err != nil {
 			return err
@@ -100,19 +108,19 @@ func (w *Workdir) copyMainGlobal() error {
 }
 
 func (w *Workdir) copyMainUser(user string) error {
-	fileList, err := w.calculateMainUserFileList(user)
+	fileList, err := w.calculateMainUserFileList()
 	if err != nil {
 		return err
 	}
 
-	mainPath := w.CTD.main.userPath(user)
+	mainPath := w.mainUserPath(user)
 	err = w.fs.MkdirAll(mainPath, 0755)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't create directory %s", mainPath)
 	}
 
 	for _, src := range fileList {
-		dst := filepath.Join(w.CTD.main.userPath(user), filepath.Base(src))
+		dst := filepath.Join(w.mainUserPath(user), filepath.Base(src))
 		err = utils.FileCopy(w.fs, src, dst)
 		if err != nil {
 			return err
@@ -128,13 +136,13 @@ func (w *Workdir) copyModules() error {
 		return err
 	}
 
-	err = w.fs.MkdirAll(w.CTD.modules.path, 0755)
+	err = w.fs.MkdirAll(w.modulesPath(), 0755)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create directory")
 	}
 
 	for _, src := range moduleList {
-		dst := filepath.Join(w.CTD.modules.path, filepath.Base(src))
+		dst := filepath.Join(w.modulesPath(), filepath.Base(src))
 
 		err = w.fs.MkdirAll(dst, 0755)
 		if err != nil {
@@ -151,32 +159,32 @@ func (w *Workdir) copyModules() error {
 }
 
 func (w *Workdir) cleanGlobal() error {
-	path := w.CTD.main.globalPath()
+	path := w.mainGlobalPath()
 	err := w.fs.RemoveAll(path)
 	if err != nil {
-		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
+		return errors.Wrap(err, "couldn't remove dir recursively")
 	}
 
-	path = w.CTD.modules.path
+	path = w.modulesPath()
 	err = w.fs.RemoveAll(path)
 	if err != nil {
-		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
+		return errors.Wrap(err, "couldn't remove dir recursively")
 	}
 
 	return nil
 }
 
 func (w *Workdir) cleanUser(user string) error {
-	path := w.CTD.main.userPath(user)
+	path := w.mainUserPath(user)
 	err := w.fs.RemoveAll(path)
 	if err != nil {
-		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
+		return errors.Wrap(err, "couldn't remove dir recursively")
 	}
 
-	path = w.CTD.modules.path
+	path = w.modulesPath()
 	err = w.fs.RemoveAll(path)
 	if err != nil {
-		return errors.Wrapf(err, "couldn't remove recursively path %s", path)
+		return errors.Wrap(err, "couldn't remove dir recursively")
 	}
 
 	return nil
@@ -199,14 +207,14 @@ func (w *Workdir) calculateMainGlobalFileList() ([]string, error) {
 	return files, nil
 }
 
-func (w *Workdir) calculateMainUserFileList(user string) ([]string, error) {
-	files, err := w.deployment.Base.ListMainUserFiles(user)
+func (w *Workdir) calculateMainUserFileList() ([]string, error) {
+	files, err := w.deployment.Base.ListMainUserFiles()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, plugin := range w.deployment.Plugins {
-		pluginFiles, err := plugin.ListMainUserFiles(user)
+		pluginFiles, err := plugin.ListMainUserFiles()
 		if err != nil {
 			return nil, err
 		}

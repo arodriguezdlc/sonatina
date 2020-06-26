@@ -12,15 +12,23 @@ import (
 //Deployment object contains all information about a deployment
 // TODO: improve explanation and interface definition
 type Deployment interface {
+	CreateUsercomponent(user string) error
+	DeleteUsercomponent(user string) error
+	ListUsercomponents() ([]string, error)
+
 	GenerateWorkdirGlobal() (string, error)
 	GenerateWorkdirUser(user string) (string, error)
+
 	GenerateVariablesGlobal() ([]string, error)
 	GenerateVariablesUser(user string) ([]string, error)
+
 	StateFilePathGlobal() string
 	StateFilePathUser(user string) string
+
 	TerraformVersion() string
 	CodeRepoURL() string
 	CodeRepoPath() string
+
 	Purge() error
 }
 
@@ -40,6 +48,43 @@ type DeploymentImpl struct {
 	Workdir *Workdir
 }
 
+// CreateUsercomponent creates a new user component for the deployment,
+// calling the respective methods con Vars and State objects
+func (d *DeploymentImpl) CreateUsercomponent(user string) error {
+	err := d.Vars.CreateUsercomponent(user)
+	if err != nil {
+		return err
+	}
+
+	err = d.State.CreateUsercomponent(user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteUsercomponent deletes an user component for the deployment,
+// calling the respective methods con Vars and State objects
+func (d *DeploymentImpl) DeleteUsercomponent(user string) error {
+	err := d.Vars.DeleteUsercomponent(user)
+	if err != nil {
+		return err
+	}
+
+	err = d.State.DeleteUsercomponent(user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ListUsercomponents returns the user component names list
+func (d *DeploymentImpl) ListUsercomponents() ([]string, error) {
+	return d.Vars.Metadata.ListUsercomponents()
+}
+
 // GenerateWorkdirGlobal combines deployment CTDs (main and plugins) to generate
 // the CTD to be applied by terraform. Returns main path where terraform must
 // be executed.
@@ -48,17 +93,25 @@ func (d *DeploymentImpl) GenerateWorkdirGlobal() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return d.Workdir.CTD.main.globalPath(), nil
+	return d.Workdir.mainGlobalPath(), nil
 }
 
 // GenerateWorkdirUser combines deployment CTDs (main and plugins) to generate
 // the CTD to be applied by terraform
 func (d *DeploymentImpl) GenerateWorkdirUser(user string) (string, error) {
-	err := d.Workdir.GenerateUser(user)
+	ok, err := d.Vars.Metadata.CheckUsercomponent(user)
 	if err != nil {
 		return "", err
 	}
-	return d.Workdir.CTD.main.userPath(user), nil
+	if !ok {
+		return "", errors.Errorf("user component %s doesn't exist", user)
+	}
+
+	err = d.Workdir.GenerateUser(user)
+	if err != nil {
+		return "", err
+	}
+	return d.Workdir.mainUserPath(user), nil
 }
 
 func (d *DeploymentImpl) GenerateVariablesGlobal() ([]string, error) {
@@ -103,7 +156,7 @@ func (d *DeploymentImpl) Purge() error {
 
 	err := d.fs.RemoveAll(d.path)
 	if err != nil {
-		return errors.Wrapf(err, "couldn't remove dir %s", d.path)
+		return errors.Wrap(err, "couldn't remove dir recursively")
 	}
 	return nil
 }

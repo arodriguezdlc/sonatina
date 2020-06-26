@@ -43,7 +43,28 @@ func (i *ApplyWorkflow) RunGlobal() error {
 	return nil
 }
 
-// TODO
 func (i *ApplyWorkflow) RunUser(user string) error {
+	executionPath, err := i.Deployment.GenerateWorkdirUser(user)
+	if err != nil {
+		return err
+	}
+
+	variableFiles, err := i.Deployment.GenerateVariablesUser(user)
+	if err != nil {
+		return err
+	}
+
+	stateFile := i.Deployment.StateFilePathUser(user)
+
+	err = i.Terraform.Init(executionPath)
+	if err != nil {
+		return err
+	}
+
+	err = i.Terraform.Apply(executionPath, variableFiles, stateFile)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

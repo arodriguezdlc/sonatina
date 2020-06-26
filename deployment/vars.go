@@ -24,6 +24,45 @@ type Vars struct {
 	Metadata *Metadata
 }
 
+// CreateUsercomponent adds a new user component to metadata and
+// initializes the directory tree
+func (v *Vars) CreateUsercomponent(user string) error {
+	err := v.fs.MkdirAll(v.UsercomponentPath(user), 0755)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create directory")
+	}
+
+	// TODO: Create user component on metadata
+	err = v.Metadata.CreateUsercomponent(user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteUsercomponent deletes an user component from metadata
+// and performs a directory cleanup
+func (v *Vars) DeleteUsercomponent(user string) error {
+	err := v.Metadata.DeleteUsercomponent(user)
+	if err != nil {
+		return err
+	}
+
+	err = v.fs.RemoveAll(v.UsercomponentPath(user))
+	if err != nil {
+		return errors.Wrap(err, "couldn't remove dir recursively")
+	}
+
+	return nil
+}
+
+// UsercomponentPath returns de variable directory path for a
+// specified user
+func (v *Vars) UsercomponentPath(user string) string {
+	return filepath.Join(v.path, "user", user)
+}
+
 // GenerateGlobal generates vars files to be used on
 // terraform operations. Returns a list of vars files that
 // must be applied in order.
