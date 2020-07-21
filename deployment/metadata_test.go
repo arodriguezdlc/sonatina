@@ -55,9 +55,16 @@ func TestListGlobalPlugins(t *testing.T) {
 	fs := afero.NewMemMapFs()
 
 	metadata := testNewMetadataWithData(fs)
+	err := metadata.save()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expected := []string{"plugin1", "plugin2"}
-	obtained := metadata.ListGlobalPlugins()
+	obtained, err := metadata.ListGlobalPlugins()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !reflect.DeepEqual(expected, obtained) {
 		t.Errorf("Incorrect global plugin list from metadata.\n\n Expected:\n%s\n\n Obtained:\n%s\n", expected, obtained)
@@ -68,9 +75,16 @@ func TestListUserPlugins(t *testing.T) {
 	fs := afero.NewMemMapFs()
 
 	metadata := testNewMetadataWithData(fs)
+	err := metadata.save()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expected := []string{"plugin1", "plugin2"}
-	obtained := metadata.ListUserPlugins("user1")
+	obtained, err := metadata.ListUserPlugins("user1")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !reflect.DeepEqual(expected, obtained) {
 		t.Errorf("Incorrect global plugin list from metadata.\n\n Expected:\n%s\n\n Obtained:\n%s\n", expected, obtained)

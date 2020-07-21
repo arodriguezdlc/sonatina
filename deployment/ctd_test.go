@@ -17,7 +17,7 @@ func TestListMainGlobalFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctd := NewCTD(fs, "/", "example.com", "/")
+	ctd := NewCTD(fs, "/", "example", "example.com", "/")
 
 	obtainedFileList, err := ctd.ListMainGlobalFiles()
 	if err != nil {
@@ -41,7 +41,7 @@ func TestListUserFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	ctd := NewCTD(fs, "/", "example.com", "/")
+	ctd := NewCTD(fs, "/", "example", "example.com", "/")
 
 	obtainedFileList, err := ctd.ListMainUserFiles()
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Apply declares `sonatina apply` command
+// Destroy declares `sonatina destroy` command
 var Destroy = &cobra.Command{
 	Use:   "destroy",
 	Short: "",

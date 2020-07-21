@@ -42,20 +42,142 @@ type userPlugin struct {
 	Name string `json:"name"`
 }
 
-func (m *Metadata) ListGlobalPlugins() []string {
-	list := []string{}
-	for _, plugin := range m.Plugins {
-		list = append(list, plugin.Name)
+func (m *Metadata) CreateGlobalPlugin(name string, repo string, repoPath string, version string, commit string) error {
+	err := m.load()
+	if err != nil {
+		return err
 	}
-	return list
+
+	if m.globalPluginExists(name) {
+		return errors.Errorf("global plugin %s already exists", name)
+	}
+
+	plugin := globalPlugin{
+		Name:     name,
+		Repo:     repo,
+		RepoPath: repoPath,
+		Version:  version,
+		Commit:   commit,
+	}
+
+	m.Plugins = append(m.Plugins, plugin)
+
+	err = m.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (m *Metadata) ListUserPlugins(user string) []string {
-	list := []string{}
-	for _, plugin := range m.UserComponents[user].Plugins {
-		list = append(list, plugin.Name)
+func (m *Metadata) DeleteGlobalPlugin(name string) error {
+	err := m.load()
+	if err != nil {
+		return err
 	}
-	return list
+
+	index, err := m.getGlobalPluginIndex(name)
+	if err != nil {
+		return err
+	}
+
+	m.deleteGlobalPluginWithIndex(index)
+
+	err = m.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metadata) ListGlobalPlugins() ([]string, error) {
+	err := m.load()
+	if err != nil {
+		return []string{}, err
+	}
+
+	return m.listGlobalPlugins()
+}
+
+func (m *Metadata) CreateUserPlugin(name string, user string) error {
+	err := m.load()
+	if err != nil {
+		return err
+	}
+
+	ok, err := m.checkUsercomponent(user)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Errorf("user component %s doesn't exist", user)
+	}
+
+	if !m.globalPluginExists(name) {
+		return errors.Errorf("global plugin %s doesn't exist", name)
+	}
+
+	if m.userPluginExists(name, user) {
+		return errors.Errorf("user plugin %s already exists for user %s", name, user)
+	}
+
+	plugin := userPlugin{
+		Name: name,
+	}
+	userComponent := m.UserComponents[user]
+	userComponent.Plugins = append(userComponent.Plugins, plugin)
+	m.UserComponents[user] = userComponent
+
+	err = m.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metadata) DeleteUserPlugin(name string, user string) error {
+	err := m.load()
+	if err != nil {
+		return err
+	}
+
+	ok, err := m.checkUsercomponent(user)
+	if !ok {
+		return errors.Errorf("user component %s doesn't exist", user)
+	}
+
+	if !m.globalPluginExists(name) {
+		return errors.Errorf("global plugin %s doesn't exist", name)
+	}
+
+	if !m.userPluginExists(name, user) {
+		return errors.Errorf("user plugin %s doesn't exist for user %s", name, user)
+	}
+
+	index, err := m.getUserPluginIndex(name, user)
+	if err != nil {
+		return err
+	}
+
+	m.deleteUserPluginWithIndex(index, user)
+
+	err = m.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Metadata) ListUserPlugins(user string) ([]string, error) {
+	err := m.load()
+	if err != nil {
+		return []string{}, err
+	}
+
+	return m.listUserPlugins(user)
 }
 
 // CreateUsercomponent updates metadata with a new user component
@@ -103,30 +225,22 @@ func (m *Metadata) DeleteUsercomponent(user string) error {
 
 // ListUsercomponents returns an array with user compoment names for the deployment
 func (m *Metadata) ListUsercomponents() ([]string, error) {
-	keys := []string{}
-
 	err := m.load()
 	if err != nil {
-		return keys, err
+		return []string{}, err
 	}
 
-	for k := range m.UserComponents {
-		keys = append(keys, k)
-	}
-
-	return keys, nil
+	return m.listUsercomponents()
 }
 
 // CheckUsercomponent checks if a user component is created
 func (m *Metadata) CheckUsercomponent(user string) (bool, error) {
-	list, err := m.ListUsercomponents()
+	err := m.load()
 	if err != nil {
 		return false, err
 	}
 
-	_, ok := utils.FindString(list, user)
-
-	return ok, nil
+	return m.checkUsercomponent(user)
 }
 
 func newMetadata(fs afero.Fs, varsPath string) *Metadata {
@@ -172,4 +286,108 @@ func (m *Metadata) save() error {
 	}
 
 	return nil
+}
+
+func (m *Metadata) listGlobalPlugins() ([]string, error) {
+	list := []string{}
+	for _, plugin := range m.Plugins {
+		list = append(list, plugin.Name)
+	}
+
+	return list, nil
+}
+
+func (m *Metadata) listUserPlugins(user string) ([]string, error) {
+	list := []string{}
+	for _, plugin := range m.UserComponents[user].Plugins {
+		list = append(list, plugin.Name)
+	}
+
+	return list, nil
+}
+
+func (m *Metadata) getGlobalPlugin(name string) (globalPlugin, error) {
+	i, err := m.getGlobalPluginIndex(name)
+	if err != nil {
+		return globalPlugin{}, err
+	}
+
+	return m.Plugins[i], nil
+}
+
+func (m *Metadata) getGlobalPluginIndex(name string) (int, error) {
+	for i, plugin := range m.Plugins {
+		if plugin.Name == name {
+			return i, nil
+		}
+	}
+
+	return -1, errors.Errorf("global plugin %s doesn't exist", name)
+}
+
+func (m *Metadata) deleteGlobalPluginWithIndex(i int) {
+	m.Plugins = append(m.Plugins[:i], m.Plugins[i+1:]...)
+}
+
+func (m *Metadata) globalPluginExists(name string) bool {
+	for _, plugin := range m.Plugins {
+		if plugin.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Metadata) userPluginExists(name string, user string) bool {
+	for _, plugin := range m.UserComponents[user].Plugins {
+		if plugin.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Metadata) checkUsercomponent(user string) (bool, error) {
+	list, err := m.listUsercomponents()
+	if err != nil {
+		return false, err
+	}
+
+	_, ok := utils.FindString(list, user)
+
+	return ok, nil
+}
+
+func (m *Metadata) listUsercomponents() ([]string, error) {
+	keys := []string{}
+	for k := range m.UserComponents {
+		keys = append(keys, k)
+	}
+
+	return keys, nil
+}
+
+func (m *Metadata) getUserPlugin(name string, user string) (userPlugin, error) {
+	i, err := m.getUserPluginIndex(name, user)
+	if err != nil {
+		return userPlugin{}, err
+	}
+
+	return m.UserComponents[user].Plugins[i], nil
+}
+
+func (m *Metadata) getUserPluginIndex(name string, user string) (int, error) {
+	for i, plugin := range m.UserComponents[user].Plugins {
+		if plugin.Name == name {
+			return i, nil
+		}
+	}
+
+	return -1, errors.Errorf("user plugin %s doesn't exist for user %s", name, user)
+}
+
+func (m *Metadata) deleteUserPluginWithIndex(i int, user string) {
+	userComponent := m.UserComponents[user]
+	userComponent.Plugins = append(userComponent.Plugins[:i], userComponent.Plugins[i+1:]...)
+	m.UserComponents[user] = userComponent
 }

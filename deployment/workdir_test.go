@@ -147,9 +147,9 @@ func TestGenerateUserWithOverride(t *testing.T) {
 
 func testNewWorkdir(fs afero.Fs) (*Workdir, error) {
 
-	base := NewCTD(fs, filepath.Join("deployment", "base"), "", "")
-	plugin1 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin1"), "", "")
-	plugin2 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin2"), "", "")
+	base := NewCTD(fs, filepath.Join("deployment", "base"), "", "", "")
+	plugin1 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin1"), "", "", "")
+	plugin2 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin2"), "", "", "")
 
 	deploy := &DeploymentImpl{
 		Name: "deployment",

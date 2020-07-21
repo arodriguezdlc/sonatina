@@ -14,6 +14,7 @@ type CTD struct {
 	path string
 	git  *gitw.Command
 
+	Name     string
 	RepoURL  string
 	RepoPath string
 
@@ -34,7 +35,7 @@ type modules struct {
 
 // NewCTD returns an initialized CTD struct
 // TODO
-func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) *CTD {
+func NewCTD(fs afero.Fs, path string, name string, repoURL string, repoPath string) *CTD {
 	git, _ := gitw.NewCommand(fs, path)
 
 	ctd := &CTD{
@@ -42,6 +43,7 @@ func NewCTD(fs afero.Fs, path string, repoURL string, repoPath string) *CTD {
 		path: path,
 		git:  git,
 
+		Name:     name,
 		RepoURL:  repoURL,
 		RepoPath: repoPath,
 

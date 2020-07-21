@@ -160,9 +160,17 @@ func (w *Workdir) copyModules() error {
 
 func (w *Workdir) cleanGlobal() error {
 	path := w.mainGlobalPath()
-	err := w.fs.RemoveAll(path)
+
+	files, err := afero.Glob(w.fs, filepath.Join(path, "*.tf"))
 	if err != nil {
-		return errors.Wrap(err, "couldn't remove dir recursively")
+		return errors.Wrap(err, "couldn't list terraform files")
+	}
+
+	for _, file := range files {
+		err = w.fs.Remove(file)
+		if err != nil {
+			return errors.Wrap(err, "couldn't remove file")
+		}
 	}
 
 	path = w.modulesPath()
@@ -176,9 +184,17 @@ func (w *Workdir) cleanGlobal() error {
 
 func (w *Workdir) cleanUser(user string) error {
 	path := w.mainUserPath(user)
-	err := w.fs.RemoveAll(path)
+
+	files, err := afero.Glob(w.fs, filepath.Join(path, "*.tf"))
 	if err != nil {
-		return errors.Wrap(err, "couldn't remove dir recursively")
+		return errors.Wrap(err, "couldn't list terraform files")
+	}
+
+	for _, file := range files {
+		err = w.fs.Remove(file)
+		if err != nil {
+			return errors.Wrap(err, "couldn't remove file")
+		}
 	}
 
 	path = w.modulesPath()

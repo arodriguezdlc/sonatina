@@ -16,6 +16,14 @@ type Deployment interface {
 	DeleteUsercomponent(user string) error
 	ListUsercomponents() ([]string, error)
 
+	CreatePluginGlobal(name string, repo string, repoPath string) error
+	DeletePluginGlobal(name string) error
+	ListPluginsGlobal() ([]string, error)
+
+	CreatePluginUser(name string, user string) error
+	DeletePluginUser(name string, user string) error
+	ListPluginsUser(user string) ([]string, error)
+
 	GenerateWorkdirGlobal() (string, error)
 	GenerateWorkdirUser(user string) (string, error)
 
@@ -43,7 +51,7 @@ type DeploymentImpl struct {
 	Vars  *Vars
 
 	Base    *CTD
-	Plugins [](*CTD) // The key is the plugin name
+	Plugins [](*CTD)
 
 	Workdir *Workdir
 }
@@ -83,6 +91,58 @@ func (d *DeploymentImpl) DeleteUsercomponent(user string) error {
 // ListUsercomponents returns the user component names list
 func (d *DeploymentImpl) ListUsercomponents() ([]string, error) {
 	return d.Vars.Metadata.ListUsercomponents()
+}
+
+func (d *DeploymentImpl) CreatePluginGlobal(name string, repo string, repoPath string) error {
+	// TODO: version and commit
+	pluginPath := d.getPluginPath(name)
+
+	err := d.fs.MkdirAll(pluginPath, 0755)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create directory")
+	}
+
+	err = d.Vars.Metadata.CreateGlobalPlugin(name, repo, repoPath, "master", "")
+	if err != nil {
+		return err
+	}
+
+	plugin := NewCTD(d.fs, pluginPath, name, repo, repoPath)
+
+	err = plugin.Clone()
+	if err != nil {
+		// Rollback metadata registration
+		d.Vars.Metadata.DeleteGlobalPlugin(name)
+		return err
+	}
+
+	d.Plugins = append(d.Plugins, plugin)
+	return nil
+}
+
+func (d *DeploymentImpl) DeletePluginGlobal(name string) error {
+	err := d.fs.RemoveAll(d.getPluginPath(name))
+	if err != nil {
+		return errors.Wrap(err, "couldn't remove dir recursively")
+	}
+
+	return d.Vars.Metadata.DeleteGlobalPlugin(name)
+}
+
+func (d *DeploymentImpl) ListPluginsGlobal() ([]string, error) {
+	return d.Vars.Metadata.ListGlobalPlugins()
+}
+
+func (d *DeploymentImpl) CreatePluginUser(name string, user string) error {
+	return d.Vars.Metadata.CreateUserPlugin(name, user)
+}
+
+func (d *DeploymentImpl) DeletePluginUser(name string, user string) error {
+	return d.Vars.Metadata.DeleteUserPlugin(name, user)
+}
+
+func (d *DeploymentImpl) ListPluginsUser(user string) ([]string, error) {
+	return d.Vars.Metadata.listUserPlugins(user)
 }
 
 // GenerateWorkdirGlobal combines deployment CTDs (main and plugins) to generate
@@ -293,17 +353,17 @@ func (d *DeploymentImpl) newDeploymentCTDs() error {
 		return errors.Wrap(err, "couldn't create directory")
 	}
 
-	d.Base = NewCTD(d.fs, basePath, d.CodeRepoURL(), d.CodeRepoPath())
+	d.Base = NewCTD(d.fs, basePath, "", d.CodeRepoURL(), d.CodeRepoPath())
 
 	for _, plugin := range d.Vars.Metadata.Plugins {
-		pluginPath := filepath.Join(d.path, "code", "plugins", plugin.Name)
+		pluginPath := d.getPluginPath(plugin.Name)
 
 		err := d.fs.MkdirAll(pluginPath, 0755)
 		if err != nil {
 			return errors.Wrap(err, "couldn't create directory")
 		}
 
-		d.Plugins = append(d.Plugins, NewCTD(d.fs, pluginPath, plugin.Repo, plugin.RepoPath))
+		d.Plugins = append(d.Plugins, NewCTD(d.fs, pluginPath, plugin.Name, plugin.Repo, plugin.RepoPath))
 	}
 
 	return nil
@@ -323,4 +383,8 @@ func (d *DeploymentImpl) cloneDeploymentCTDs() error {
 	}
 
 	return nil
+}
+
+func (d *DeploymentImpl) getPluginPath(name string) string {
+	return filepath.Join(d.path, "code", "plugins", name)
 }

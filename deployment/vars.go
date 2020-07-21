@@ -92,7 +92,10 @@ func (v *Vars) GenerateUser(user string) ([]string, error) {
 		return varFiles, err
 	}
 
-	userPluginList := v.Metadata.ListUserPlugins(user)
+	userPluginList, err := v.Metadata.ListUserPlugins(user)
+	if err != nil {
+		return varFiles, err
+	}
 
 	for i, plugin := range v.deployment.Plugins {
 		// Only adds plugin if user has the plugin added.
