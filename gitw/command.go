@@ -98,15 +98,25 @@ func (c *Command) AddGlob(pattern string) error {
 
 // Commit executes a `git commit -m` equivalent
 func (c *Command) Commit(msg string) error {
-	worktree, err := c.worktree()
+	repo, worktree, err := c.openWithWorktree()
+	if err != nil {
+		return err
+	}
+
+	email, err := c.getEmail(repo)
+	if err != nil {
+		return err
+	}
+
+	name, err := c.getUsername(repo)
 	if err != nil {
 		return err
 	}
 
 	_, err = worktree.Commit(msg, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  "John Doe", //TODO: integrate author
-			Email: "john@doe.org",
+			Name:  name,
+			Email: email,
 			When:  time.Now(),
 		},
 	})
@@ -131,6 +141,59 @@ func (c *Command) RemoteAdd(name string, url string) error {
 	if err != nil {
 		return errors.Wrap(err, "couldn't create remote")
 	}
+
+	return nil
+}
+
+// Pull executes a `git pull <remote> <branch>` equivalent
+func (c *Command) Pull(remote string, branch string) error {
+	worktree, err := c.worktree()
+	if err != nil {
+		return err
+	}
+
+	err = worktree.Pull(&git.PullOptions{
+		RemoteName:    remote,
+		ReferenceName: plumbing.NewBranchReferenceName(branch),
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		return errors.Wrap(err, "couldn't pull from origin")
+	}
+
+	return nil
+}
+
+// Push executes a `git push <remote> <branch>` equivalent
+func (c *Command) Push(remote string, branch string) error {
+	repo, err := c.open()
+	if err != nil {
+		return err
+	}
+
+	ref := plumbing.NewBranchReferenceName(branch)
+	referenceList := append([]config.RefSpec{}, config.RefSpec(ref+":"+ref))
+	err = repo.Push(&git.PushOptions{
+		RemoteName: remote,
+		RefSpecs:   referenceList,
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+
+	return nil
+}
+
+// TODO
+func (c *Command) Reset() error {
+	//worktree, err := c.worktree()
+	// if err != nil {
+	// 	return err
+	// }
+
+	//err = worktree.Reset(&git.ResetOptions{
+	//	Commit: ,
+	//	Mode: ,
+	//})
 
 	return nil
 }
@@ -163,4 +226,22 @@ func (c *Command) openWithWorktree() (*git.Repository, *git.Worktree, error) {
 func (c *Command) worktree() (*git.Worktree, error) {
 	_, worktree, err := c.openWithWorktree()
 	return worktree, err
+}
+
+func (c *Command) getUsername(repo *git.Repository) (string, error) {
+	cfg, err := repo.ConfigScoped(config.SystemScope)
+	if err != nil {
+		return "", errors.Wrap(err, "couldn't get username from git config")
+	}
+
+	return cfg.User.Name, nil
+}
+
+func (c *Command) getEmail(repo *git.Repository) (string, error) {
+	cfg, err := repo.ConfigScoped(config.SystemScope)
+	if err != nil {
+		return "", errors.Wrap(err, "couldn't get email from git config")
+	}
+
+	return cfg.User.Email, nil
 }

@@ -17,7 +17,7 @@ func Destroy(terraform *terraformcli.Terraform, deployment deployment.Deployment
 	}
 }
 
-func (i *DestroyWorkflow) RunGlobal() error {
+func (i *DestroyWorkflow) RunGlobal(message string) error {
 	executionPath, err := i.Deployment.GenerateWorkdirGlobal()
 	if err != nil {
 		return err
@@ -40,10 +40,15 @@ func (i *DestroyWorkflow) RunGlobal() error {
 		return err
 	}
 
+	err = i.Deployment.Push(message)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (i *DestroyWorkflow) RunUser(user string) error {
+func (i *DestroyWorkflow) RunUser(message string, user string) error {
 	executionPath, err := i.Deployment.GenerateWorkdirUser(user)
 	if err != nil {
 		return err
@@ -62,6 +67,11 @@ func (i *DestroyWorkflow) RunUser(user string) error {
 	}
 
 	err = i.Terraform.Destroy(executionPath, variableFiles, stateFile)
+	if err != nil {
+		return err
+	}
+
+	err = i.Deployment.Push(message)
 	if err != nil {
 		return err
 	}

@@ -12,6 +12,7 @@ var Apply = &cobra.Command{
 	Use:   "apply",
 	Short: "",
 	Long:  "",
+	Args:  cobra.ExactArgs(1),
 	RunE:  applyExecution,
 }
 
@@ -19,10 +20,14 @@ func init() {
 	Apply.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
 	Apply.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired
 
+	Apply.Flags().BoolVarP(&pull, "pull", "p", false, "enable pull before apply")
+
 	Apply.Flags().StringVarP(&userComponent, "user-component", "c", "", "user component")
 }
 
 func applyExecution(command *cobra.Command, args []string) error {
+	message := args[0]
+
 	m := manager.GetManager()
 	deploy, err := m.Get(deployName)
 	if err != nil {
@@ -34,11 +39,18 @@ func applyExecution(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	if pull {
+		err = deploy.Pull()
+		if err != nil {
+			return err
+		}
+	}
+
 	apply := workflow.Apply(terraform, deploy)
 	if userComponent == "" { // TODO: check if is a valid user Component
-		err = apply.RunGlobal()
+		err = apply.RunGlobal(message)
 	} else {
-		err = apply.RunUser(userComponent)
+		err = apply.RunUser(message, userComponent)
 	}
 	if err != nil {
 		return err

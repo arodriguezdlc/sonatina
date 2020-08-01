@@ -17,7 +17,7 @@ func Apply(terraform *terraformcli.Terraform, deployment deployment.Deployment) 
 	}
 }
 
-func (i *ApplyWorkflow) RunGlobal() error {
+func (i *ApplyWorkflow) RunGlobal(message string) error {
 	executionPath, err := i.Deployment.GenerateWorkdirGlobal()
 	if err != nil {
 		return err
@@ -40,10 +40,15 @@ func (i *ApplyWorkflow) RunGlobal() error {
 		return err
 	}
 
+	err = i.Deployment.Push(message)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (i *ApplyWorkflow) RunUser(user string) error {
+func (i *ApplyWorkflow) RunUser(message string, user string) error {
 	executionPath, err := i.Deployment.GenerateWorkdirUser(user)
 	if err != nil {
 		return err
@@ -62,6 +67,11 @@ func (i *ApplyWorkflow) RunUser(user string) error {
 	}
 
 	err = i.Terraform.Apply(executionPath, variableFiles, stateFile)
+	if err != nil {
+		return err
+	}
+
+	err = i.Deployment.Push(message)
 	if err != nil {
 		return err
 	}

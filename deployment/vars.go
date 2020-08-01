@@ -24,6 +24,31 @@ type Vars struct {
 	Metadata *Metadata
 }
 
+// Pull method retrieves variables from git repository
+func (v *Vars) Pull() error {
+	return v.gitw.Pull("origin", varsBranch)
+}
+
+// Push stores variables on git repository
+func (v *Vars) Push(message string) error {
+	err := v.gitw.AddGlob(".")
+	if err != nil {
+		return err
+	}
+
+	err = v.gitw.Commit(message)
+	if err != nil {
+		return err
+	}
+
+	err = v.gitw.Push("origin", varsBranch)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CreateUsercomponent adds a new user component to metadata and
 // initializes the directory tree
 func (v *Vars) CreateUsercomponent(user string) error {

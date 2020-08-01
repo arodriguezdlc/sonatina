@@ -30,6 +30,9 @@ type Deployment interface {
 	GenerateVariablesGlobal() ([]string, error)
 	GenerateVariablesUser(user string) ([]string, error)
 
+	Push(message string) error
+	Pull() error
+
 	StateFilePathGlobal() string
 	StateFilePathUser(user string) string
 
@@ -180,6 +183,36 @@ func (d *DeploymentImpl) GenerateVariablesGlobal() ([]string, error) {
 
 func (d *DeploymentImpl) GenerateVariablesUser(user string) ([]string, error) {
 	return d.Vars.GenerateUser(user)
+}
+
+// Push uploads vars and state to the respective repositories
+func (d *DeploymentImpl) Push(message string) error {
+	err := d.State.Push(message)
+	if err != nil {
+		return err
+	}
+
+	err = d.Vars.Push(message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Pull downloads vars and state from the respective repositories
+func (d *DeploymentImpl) Pull() error {
+	err := d.State.Pull()
+	if err != nil {
+		return err
+	}
+
+	err = d.Vars.Pull()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *DeploymentImpl) StateFilePathGlobal() string {

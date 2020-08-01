@@ -56,14 +56,29 @@ func (s *State) UsercomponentPath(user string) string {
 	return filepath.Join(s.path, "user", user)
 }
 
-// Save method stores terraform state information on git repository
-func (s *State) Save() {
-	// TODO
+// Pull method retrieves terraform state information from git repository
+func (s *State) Pull() error {
+	return s.gitw.Pull("origin", stateBranch)
 }
 
-// Load method retrieves terraform state information from git repository
-func (s *State) Load() {
-	// TODO
+// Push stores terraform state information on git repository
+func (s *State) Push(message string) error {
+	err := s.gitw.AddGlob(".")
+	if err != nil {
+		return err
+	}
+
+	err = s.gitw.Commit(message)
+	if err != nil {
+		return err
+	}
+
+	err = s.gitw.Push("origin", stateBranch)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *DeploymentImpl) getState(repoURL string) error {

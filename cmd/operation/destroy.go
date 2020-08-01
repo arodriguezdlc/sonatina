@@ -12,6 +12,7 @@ var Destroy = &cobra.Command{
 	Use:   "destroy",
 	Short: "",
 	Long:  "",
+	Args:  cobra.ExactArgs(1),
 	RunE:  destroyExecution,
 }
 
@@ -23,6 +24,8 @@ func init() {
 }
 
 func destroyExecution(command *cobra.Command, args []string) error {
+	message := args[0]
+
 	m := manager.GetManager()
 	deploy, err := m.Get(deployName)
 	if err != nil {
@@ -36,9 +39,9 @@ func destroyExecution(command *cobra.Command, args []string) error {
 
 	destroy := workflow.Destroy(terraform, deploy)
 	if userComponent == "" { // TODO: check if is a valid user Component
-		err = destroy.RunGlobal()
+		err = destroy.RunGlobal(message)
 	} else {
-		err = destroy.RunUser(userComponent)
+		err = destroy.RunUser(message, userComponent)
 	}
 	if err != nil {
 		return err

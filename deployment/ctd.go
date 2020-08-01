@@ -93,7 +93,7 @@ func (ctd *CTD) Clone() error {
 }
 
 func (ctd *CTD) Pull() error {
-	// TODO
+	ctd.git.Pull("origin", "master") // TODO: use version
 	return nil
 }
 
