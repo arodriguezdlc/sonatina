@@ -183,21 +183,6 @@ func (c *Command) Push(remote string, branch string) error {
 	return nil
 }
 
-// TODO
-func (c *Command) Reset() error {
-	//worktree, err := c.worktree()
-	// if err != nil {
-	// 	return err
-	// }
-
-	//err = worktree.Reset(&git.ResetOptions{
-	//	Commit: ,
-	//	Mode: ,
-	//})
-
-	return nil
-}
-
 // Private
 
 func (c *Command) open() (*git.Repository, error) {

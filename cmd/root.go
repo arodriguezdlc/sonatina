@@ -65,7 +65,7 @@ func init() {
 
 	rootCmd.SilenceUsage = true
 
-	// Register CRUD subcommands
+	// Register subcommands
 	rootCmd.AddCommand(operation.Apply)
 	rootCmd.AddCommand(operation.Clone)
 	rootCmd.AddCommand(operation.Create)
@@ -73,6 +73,7 @@ func init() {
 	rootCmd.AddCommand(operation.Destroy)
 	rootCmd.AddCommand(operation.Init)
 	rootCmd.AddCommand(operation.List)
+	rootCmd.AddCommand(operation.Refresh)
 }
 
 // initConfig reads in config file and ENV variables if set.
