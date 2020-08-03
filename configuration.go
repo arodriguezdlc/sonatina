@@ -21,7 +21,7 @@ func setDefaultConfig() {
 	viper.SetDefault("TerraformPath", "~/.sonatina/terraform")
 	viper.SetDefault("DefaultTerraformVersion", "0.12.24")
 	viper.SetDefault("DefaultFlavour", "default")
-
+	viper.SetDefault("Editor", "vi")
 }
 
 func setEnvVariables() {

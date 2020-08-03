@@ -74,6 +74,8 @@ func init() {
 	rootCmd.AddCommand(operation.Init)
 	rootCmd.AddCommand(operation.List)
 	rootCmd.AddCommand(operation.Refresh)
+	rootCmd.AddCommand(operation.Edit)
+	rootCmd.AddCommand(operation.Show)
 }
 
 // initConfig reads in config file and ENV variables if set.

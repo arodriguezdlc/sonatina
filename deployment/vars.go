@@ -137,6 +137,51 @@ func (v *Vars) GenerateUser(user string) ([]string, error) {
 	return varFiles, nil
 }
 
+// GetVariableFilepath returns the variable filepath for a specified kind, plugin and user component
+// kind: can be config, flavour or static
+// plugin: if it's "", base file (no plugin) is returned
+// user: if it's "", global file (no user component) is returned
+func (v *Vars) GetVariableFilepath(kind string, plugin string, user string) (string, error) {
+	if _, ok := utils.FindString([]string{"config", "flavour", "static"}, kind); !ok {
+		return "", errors.Errorf("Invalid kind %s of variable file", kind)
+	}
+
+	suffix := "_" + kind + ".tfvars"
+	path := v.path
+
+	if user == "" {
+		path = filepath.Join(path, "global")
+	} else {
+		ok, err := v.Metadata.checkUsercomponent(user)
+		if err != nil {
+			return "", err
+		}
+		if !ok {
+			return "", errors.Errorf("user component %s doesn't exist", user)
+		}
+		path = filepath.Join(path, "user", user)
+	}
+
+	if plugin == "" {
+		path = filepath.Join(path, "base"+suffix)
+	} else {
+		if user == "" {
+			if !v.Metadata.globalPluginExists(plugin) {
+				return "", errors.Errorf("global plugin %s doesn't exist", plugin)
+			}
+		} else {
+			if !v.Metadata.userPluginExists(plugin, user) {
+				return "", errors.Errorf("user plugin %s doesn't exist", user)
+			}
+		}
+		path = filepath.Join(path, "plugin_"+plugin+suffix)
+	}
+
+	return path, nil
+}
+
+// Private
+
 func (v *Vars) copyVTDGlobal(vtd *VTD, prefix string, flavour string) ([]string, error) {
 	varFiles := []string{}
 
@@ -219,7 +264,7 @@ func (v *Vars) copyConfigUser(user string, vtd *VTD, prefix string) (string, err
 
 func (v *Vars) copyFlavourGlobal(vtd *VTD, prefix string, flavour string) (string, error) {
 	src := vtd.flavour.globalFile(flavour)
-	dst := filepath.Join(v.path, "global", prefix+"_flavour_"+flavour+".tfvars")
+	dst := filepath.Join(v.path, "global", prefix+"_flavour.tfvars")
 
 	err := utils.FileCopy(v.fs, src, dst)
 	if err != nil {
@@ -231,7 +276,7 @@ func (v *Vars) copyFlavourGlobal(vtd *VTD, prefix string, flavour string) (strin
 
 func (v *Vars) copyFlavourUser(user string, vtd *VTD, prefix string, flavour string) (string, error) {
 	src := vtd.flavour.userFile(flavour)
-	dst := filepath.Join(v.path, "user", user, prefix+"_flavour_"+flavour+".tfvars")
+	dst := filepath.Join(v.path, "user", user, prefix+"_flavour.tfvars")
 
 	err := utils.FileCopy(v.fs, src, dst)
 	if err != nil {

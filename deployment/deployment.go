@@ -29,6 +29,8 @@ type Deployment interface {
 
 	GenerateVariablesGlobal() ([]string, error)
 	GenerateVariablesUser(user string) ([]string, error)
+	GetVariableFilepath(kind string, plugin string, user string) (string, error)
+	ReadVariableFilepath(kind string, plugin string, user string) (string, error)
 
 	Push(message string) error
 	Pull() error
@@ -183,6 +185,24 @@ func (d *DeploymentImpl) GenerateVariablesGlobal() ([]string, error) {
 
 func (d *DeploymentImpl) GenerateVariablesUser(user string) ([]string, error) {
 	return d.Vars.GenerateUser(user)
+}
+
+func (d *DeploymentImpl) GetVariableFilepath(kind string, plugin string, user string) (string, error) {
+	return d.Vars.GetVariableFilepath(kind, plugin, user)
+}
+
+func (d *DeploymentImpl) ReadVariableFilepath(kind string, plugin string, user string) (string, error) {
+	filepath, err := d.GetVariableFilepath(kind, plugin, user)
+	if err != nil {
+		return "", err
+	}
+
+	bytes, err := afero.ReadFile(d.fs, filepath)
+	if err != nil {
+		return "", errors.Wrap(err, "couldn't read file")
+	}
+
+	return string(bytes), nil
 }
 
 // Push uploads vars and state to the respective repositories
