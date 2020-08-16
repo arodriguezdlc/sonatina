@@ -3,6 +3,7 @@ package operation
 import (
 	"fmt"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
 	"github.com/spf13/cobra"
 )
@@ -17,10 +18,13 @@ var Refresh = &cobra.Command{
 
 func init() {
 	Refresh.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
-	Refresh.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired
 }
 
 func refreshExecution(command *cobra.Command, args []string) error {
+	deployName, err := common.GetCurrentDeployment(deployName)
+	if err != nil {
+		return err
+	}
 
 	m := manager.GetManager()
 	deploy, err := m.Get(deployName)

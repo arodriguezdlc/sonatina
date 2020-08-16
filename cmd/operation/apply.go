@@ -18,15 +18,17 @@ var Apply = &cobra.Command{
 
 func init() {
 	Apply.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
-	Apply.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired
-
 	Apply.Flags().BoolVarP(&pull, "pull", "p", false, "enable pull before apply")
-
 	Apply.Flags().StringVarP(&userComponent, "user-component", "c", "", "user component")
 }
 
 func applyExecution(command *cobra.Command, args []string) error {
 	message := args[0]
+
+	deployName, err := common.GetCurrentDeployment(deployName)
+	if err != nil {
+		return err
+	}
 
 	m := manager.GetManager()
 	deploy, err := m.Get(deployName)

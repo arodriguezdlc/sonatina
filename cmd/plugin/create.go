@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
 
 	"github.com/spf13/cobra"
@@ -20,18 +21,20 @@ var CreatePlugin = &cobra.Command{
 
 func init() {
 	CreatePlugin.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
-	CreatePlugin.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired
-
 	CreatePlugin.Flags().StringVarP(&repoURI, "repo-uri", "r", "", "plugin git repo uri")
 	CreatePlugin.Flags().StringVarP(&repoPath, "code-repo-path", "p", "", "code git repo path")
-
 	CreatePlugin.Flags().StringVarP(&userComponent, "user-component", "c", "", "user component name")
 }
 
 func createPluginExecution(command *cobra.Command, args []string) error {
 	pluginName := args[0]
-	m := manager.GetManager()
 
+	deployName, err := common.GetCurrentDeployment(deployName)
+	if err != nil {
+		return err
+	}
+
+	m := manager.GetManager()
 	deploy, err := m.Get(deployName)
 	if err != nil {
 		return err

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
@@ -12,6 +13,11 @@ import (
 // NewFileIfNotExist creates a empty file if is not present, or do
 // nothing if file already exists
 func NewFileIfNotExist(fs afero.Fs, path string) error {
+	path, err := homedir.Expand(path)
+	if err != nil {
+		return errors.Wrap(err, "couldn't expand path")
+	}
+
 	file, err := fs.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer file.Close()
 	if err != nil {
@@ -23,6 +29,11 @@ func NewFileIfNotExist(fs afero.Fs, path string) error {
 // NewFileWithContentIfNotExist creates a file with a speficied content only if file
 // doesn't exist
 func NewFileWithContentIfNotExist(fs afero.Fs, path string, content string) error {
+	path, err := homedir.Expand(path)
+	if err != nil {
+		return errors.Wrap(err, "couldn't expand path")
+	}
+
 	file, err := fs.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer file.Close()
 	if err != nil {
@@ -46,7 +57,12 @@ func NewFileWithContentIfNotExist(fs afero.Fs, path string, content string) erro
 // NewDirectoryWithKeep creates a directory and an empty .keep file to maintain
 // filetree in git
 func NewDirectoryWithKeep(fs afero.Fs, path string) error {
-	err := fs.MkdirAll(path, 0755)
+	path, err := homedir.Expand(path)
+	if err != nil {
+		return errors.Wrap(err, "couldn't expand path")
+	}
+
+	err = fs.MkdirAll(path, 0755)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't create directory %s", path)
 	}

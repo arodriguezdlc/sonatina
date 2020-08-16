@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
 
 	"github.com/spf13/cobra"
@@ -19,12 +20,15 @@ var ListUsercomponents = &cobra.Command{
 
 func init() {
 	ListUsercomponents.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
-	ListUsercomponents.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired
 }
 
 func listUsercomponentsExecution(command *cobra.Command, args []string) error {
-	m := manager.GetManager()
+	deployName, err := common.GetCurrentDeployment(deployName)
+	if err != nil {
+		return err
+	}
 
+	m := manager.GetManager()
 	deploy, err := m.Get(deployName)
 	if err != nil {
 		return err

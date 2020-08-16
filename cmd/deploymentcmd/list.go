@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +24,13 @@ func listDeploymentExecution(command *cobra.Command, args []string) error {
 	list, err := m.List()
 	if err != nil {
 		return err
+	}
+
+	current, err := common.GetCurrentDeployment("")
+	if err == nil {
+		fmt.Fprintln(os.Stdout, "Current: "+current)
+	} else {
+		logrus.WithError(err).Warning("couldn't get current deployment")
 	}
 
 	fmt.Fprintln(os.Stdout, "DEPLOYMENTS:")

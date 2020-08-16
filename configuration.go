@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/mitchellh/go-homedir"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -30,6 +32,10 @@ func setEnvVariables() {
 
 func setConfigFile() {
 	viper.SetConfigName("config")
-	viper.AddConfigPath("~/.sonatina")
+	homeConfigPath, err := homedir.Expand("~/.sonatina")
+	if err != nil {
+		logrus.WithError(err).Fatalln("couldn't expand homedir")
+	}
+	viper.AddConfigPath(homeConfigPath)
 	viper.AddConfigPath("/etc/sonatina")
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -20,13 +21,17 @@ var Edit = &cobra.Command{
 
 func init() {
 	Edit.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
-	Edit.MarkFlagRequired("deployment") // TODO: use current deployment by default and remove MarkFlagRequired
 
 	Edit.Flags().StringVarP(&userComponent, "user-component", "c", "", "user component")
 	Edit.Flags().StringVarP(&pluginName, "plugin", "p", "", "plugin")
 }
 
 func editExecution(command *cobra.Command, args []string) error {
+	deployName, err := common.GetCurrentDeployment(deployName)
+	if err != nil {
+		return err
+	}
+
 	m := manager.GetManager()
 	deploy, err := m.Get(deployName)
 	if err != nil {

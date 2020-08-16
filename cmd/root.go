@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
@@ -11,8 +13,9 @@ import (
 
 	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/cmd/operation"
+	"github.com/arodriguezdlc/sonatina/manager"
+	"github.com/arodriguezdlc/sonatina/utils"
 
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
@@ -34,12 +37,9 @@ var rootCmd = &cobra.Command{
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(fs afero.Fs) {
-	common.Fs = fs
-
+func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-
 		st, ok := err.(stackTracer)
 		if ok {
 			fmt.Printf("%+v\n\n", st)
@@ -53,16 +53,7 @@ func Execute(fs afero.Fs) {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sonatina.json)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 	rootCmd.SilenceUsage = true
 
 	// Register subcommands
@@ -76,6 +67,7 @@ func init() {
 	rootCmd.AddCommand(operation.Refresh)
 	rootCmd.AddCommand(operation.Edit)
 	rootCmd.AddCommand(operation.Show)
+	rootCmd.AddCommand(operation.Use)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -83,23 +75,63 @@ func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// Search config in home directory with name ".sonatina" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".sonatina")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
+	common.Fs = afero.NewOsFs()
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	err := viper.ReadInConfig()
+	setLogFile()
+	setLogLevel()
+	if err == nil {
+		logrus.Infoln("Using config file:", viper.ConfigFileUsed())
+	} else {
+		logrus.WithError(err).Warningln("couldn't read configuration file")
 	}
+
+	err = utils.NewFileIfNotExist(common.Fs, filepath.Join("~", ".sonatina", "config"))
+	if err != nil {
+		logrus.WithError(err).Fatalln("couldn't create current file")
+	}
+
+	err = manager.InitializeManager(common.Fs, viper.GetString("ManagerConnector"))
+	if err != nil {
+		logrus.WithError(err).Fatalln("couldn't initialize manager")
+	}
+}
+
+func setLogFile() afero.File {
+	filepath, err := homedir.Expand(viper.GetString("LogFile"))
+	if err != nil {
+		logrus.WithError(err).Fatal("couldn't get log file path")
+	}
+
+	logfile, err := common.Fs.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		logrus.WithError(err).Fatal("couldn't open file for logging")
+	}
+	logrus.SetOutput(logfile)
+	return logfile
+}
+
+func setLogLevel() {
+	level := viper.GetString("LogLevel")
+	switch level {
+	case "fatal":
+		logrus.SetLevel(logrus.FatalLevel)
+	case "error":
+		logrus.SetLevel(logrus.ErrorLevel)
+	case "warning":
+		logrus.SetLevel(logrus.WarnLevel)
+	case "info":
+		logrus.SetLevel(logrus.InfoLevel)
+	case "debug":
+		logrus.SetLevel(logrus.DebugLevel)
+		//logrus.SetReportCaller(true)
+	default:
+		logrus.Fatalln("Unrecognized LogLevel: " + level)
+	}
+
+	logrus.Debugln("LogLevel: " + level)
 }
