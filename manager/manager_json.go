@@ -1,7 +1,7 @@
 package manager
 
 // TODO: Check that readed DeploymentMap is correct
-// TODO: some functions have to read json more than once. It could be optimized
+// XXX: some functions have to read json more than once. It could be optimized
 
 import (
 	"encoding/json"
@@ -26,7 +26,6 @@ type managerJSON struct {
 
 type deploymentItem struct {
 	StorageRepoURI string `json:"storage_repo_uri"`
-	CodeRepoURI    string `json:"code_repo_uri"`
 }
 type deploymentMap map[string]deploymentItem
 
@@ -104,7 +103,7 @@ func (m *managerJSON) Get(name string) (deployment.Deployment, error) {
 
 // Clone downloads deployment information from the storage repo initializes all the
 // background file structure of a sonatina deployment
-func (m *managerJSON) Clone(name string, storageRepoURI string, codeRepoURI string) error {
+func (m *managerJSON) Clone(name string, storageRepoURI string) error {
 	dm, err := m.read()
 	if err != nil {
 		return err
@@ -121,7 +120,6 @@ func (m *managerJSON) Clone(name string, storageRepoURI string, codeRepoURI stri
 
 	di := deploymentItem{
 		StorageRepoURI: storageRepoURI,
-		CodeRepoURI:    codeRepoURI,
 	}
 	m.add(name, di, &dm)
 	if err = m.save(dm); err != nil {
@@ -151,7 +149,6 @@ func (m *managerJSON) Create(name string, storageRepoURI string, codeRepoURI str
 
 	di := deploymentItem{
 		StorageRepoURI: storageRepoURI,
-		CodeRepoURI:    codeRepoURI,
 	}
 	m.add(name, di, &dm)
 	if err = m.save(dm); err != nil {

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -76,22 +77,26 @@ func NewDirectoryWithKeep(fs afero.Fs, path string) error {
 }
 
 func FileCopy(fs afero.Fs, sourcePath string, destPath string) error {
-	// XXX: easy way to copy file, it isn't good for large files because has to save it
-	// completely in memory before write. However, this frameworks usually works with small files.
-	// It could be improved in the future.
 	fileInfo, err := fs.Stat(sourcePath)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get stat from file %s", sourcePath)
 	}
 
-	fileContent, err := afero.ReadFile(fs, sourcePath)
+	sourceFile, err := fs.OpenFile(sourcePath, os.O_RDONLY, fileInfo.Mode())
+	defer sourceFile.Close()
 	if err != nil {
-		return errors.Wrapf(err, "couldn't read from file %s", sourcePath)
+		return errors.Wrapf(err, "couldn't open file %s for read", sourcePath)
 	}
 
-	err = afero.WriteFile(fs, destPath, fileContent, fileInfo.Mode())
+	destFile, err := fs.OpenFile(destPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileInfo.Mode())
+	defer destFile.Close()
 	if err != nil {
-		return errors.Wrapf(err, "couldn't write to file %s", destPath)
+		return errors.Wrapf(err, "couldn't open file %s for write", destPath)
+	}
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't copy file %s to %s", sourcePath, destPath)
 	}
 
 	return nil

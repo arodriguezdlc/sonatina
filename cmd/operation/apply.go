@@ -49,7 +49,7 @@ func applyExecution(command *cobra.Command, args []string) error {
 	}
 
 	apply := workflow.Apply(terraform, deploy)
-	if userComponent == "" { // TODO: check if is a valid user Component
+	if userComponent == "" {
 		err = apply.RunGlobal(message)
 	} else {
 		err = apply.RunUser(message, userComponent)

@@ -3,6 +3,7 @@ package deploymentcmd
 import (
 	"fmt"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
 
 	"github.com/spf13/cobra"
@@ -26,7 +27,12 @@ func cloneDeploymentExecution(command *cobra.Command, args []string) error {
 	deployName := args[0]
 	m := manager.GetManager()
 
-	err := m.Clone(deployName, storageRepoURI, codeRepoURI)
+	err := m.Clone(deployName, storageRepoURI)
+	if err != nil {
+		return err
+	}
+
+	err = common.SetCurrentDeployment(deployName)
 	if err != nil {
 		return err
 	}

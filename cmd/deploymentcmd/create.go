@@ -3,6 +3,7 @@ package deploymentcmd
 import (
 	"fmt"
 
+	"github.com/arodriguezdlc/sonatina/cmd/common"
 	"github.com/arodriguezdlc/sonatina/manager"
 
 	"github.com/spf13/cobra"
@@ -43,6 +44,11 @@ func createDeploymentExecution(command *cobra.Command, args []string) error {
 	}
 
 	err := m.Create(deployName, storageRepoURI, codeRepoURI, codeRepoPath, terraformVersion, flavour)
+	if err != nil {
+		return err
+	}
+
+	err = common.SetCurrentDeployment(deployName)
 	if err != nil {
 		return err
 	}

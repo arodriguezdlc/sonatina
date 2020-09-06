@@ -38,7 +38,7 @@ func initExecution(command *cobra.Command, args []string) error {
 	}
 
 	init := workflow.Init(terraform, deploy)
-	if userComponent == "" { // TODO: check if is a valid user Component
+	if userComponent == "" {
 		err = init.RunGlobal()
 	} else {
 		err = init.RunUser(userComponent)

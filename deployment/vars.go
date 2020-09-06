@@ -9,11 +9,10 @@ import (
 	"github.com/spf13/afero"
 )
 
-// TODO: improve docs
-
 const varsBranch string = "variables"
 
-// Vars manage variable and metadata
+// Vars manages the variables branch on storage repo, that includes tfvars files
+// that will be stored on the repository and the metadata file.
 type Vars struct {
 	fs         afero.Fs
 	path       string
@@ -24,12 +23,12 @@ type Vars struct {
 	Metadata *Metadata
 }
 
-// Pull method retrieves variables from git repository
+// Pull method retrieves variables from git storage repository.
 func (v *Vars) Pull() error {
 	return v.gitw.Pull("origin", varsBranch)
 }
 
-// Push stores variables on git repository
+// Push creates a new commit and push it to the git storage repository.
 func (v *Vars) Push(message string) error {
 	err := v.gitw.AddGlob(".")
 	if err != nil {
@@ -57,7 +56,6 @@ func (v *Vars) CreateUsercomponent(user string) error {
 		return errors.Wrap(err, "couldn't create directory")
 	}
 
-	// TODO: Create user component on metadata
 	err = v.Metadata.CreateUsercomponent(user)
 	if err != nil {
 		return err
@@ -83,7 +81,7 @@ func (v *Vars) DeleteUsercomponent(user string) error {
 }
 
 // UsercomponentPath returns de variable directory path for a
-// specified user
+// specified user, that it's on the storage repo.
 func (v *Vars) UsercomponentPath(user string) string {
 	return filepath.Join(v.path, "user", user)
 }
@@ -110,7 +108,7 @@ func (v *Vars) GenerateGlobal() ([]string, error) {
 
 // GenerateUser generates vars files to be used on
 // terraform operations. Returns a list of vars files that
-// must be applied in order.
+// must be applied in the returned order.
 func (v *Vars) GenerateUser(user string) ([]string, error) {
 	varFiles, err := v.copyVTDUser(user, v.deployment.Base.vtd, "base", v.Metadata.UserComponents[user].Flavour)
 	if err != nil {
@@ -299,7 +297,7 @@ func (v *Vars) copyStaticGlobal(vtd *VTD, prefix string) (string, error) {
 }
 
 func (v *Vars) copyStaticUser(user string, vtd *VTD, prefix string) (string, error) {
-	src := vtd.static.globalFile()
+	src := vtd.static.userFile()
 	dst := filepath.Join(v.path, "user", user, prefix+"_static.tfvars")
 
 	err := utils.FileCopy(v.fs, src, dst)

@@ -34,7 +34,6 @@ type modules struct {
 }
 
 // NewCTD returns an initialized CTD struct
-// TODO
 func NewCTD(fs afero.Fs, path string, name string, repoURL string, repoPath string) *CTD {
 	git, _ := gitw.NewCommand(fs, path)
 
@@ -80,7 +79,6 @@ func (ctd *CTD) ListMainUserFiles() ([]string, error) {
 
 // ListModules returns all modules defined on a CTD
 func (ctd *CTD) ListModules() ([]string, error) {
-	// TODO: modules could be obtained from other repos
 	slice, err := afero.Glob(ctd.modules.fs, filepath.Join(ctd.modules.path, "/*"))
 	if err != nil {
 		return slice, errors.Wrap(err, "cannot list modules")
@@ -88,17 +86,22 @@ func (ctd *CTD) ListModules() ([]string, error) {
 	return slice, nil
 }
 
+// Clone executes a `git clone` command equivalent to get the CTD repository
 func (ctd *CTD) Clone() error {
 	return ctd.git.Clone(ctd.RepoURL)
 }
 
+// Pull executes a `git pull` command equivalent to update the CTD repository
+// with the last changes
 func (ctd *CTD) Pull() error {
-	ctd.git.Pull("origin", "master") // TODO: use version
+	ctd.git.Pull("origin", "master") // TODO: use a specified branch
 	return nil
 }
 
+// Checkout executes a `git checkout` command equivalent to point the CTD
+// repository to a specified commit, branch or tag
 func (ctd *CTD) Checkout() error {
-	// TODO
+	// TODO: support for checkout to a specified version, branch or commit
 	return nil
 }
 

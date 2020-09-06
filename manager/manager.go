@@ -14,7 +14,7 @@ type Manager interface {
 	Get(name string) (deployment.Deployment, error)
 	Create(name string, storageRepoURI string, codeRepoURI string, codeRepoPath string,
 		terraformVersion string, flavour string) error
-	Clone(name string, storageRepoURI string, codeRepoURI string) error
+	Clone(name string, storageRepoURI string) error
 	Delete(name string) error
 }
 

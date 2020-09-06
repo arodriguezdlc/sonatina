@@ -11,7 +11,8 @@ import (
 
 const stateBranch string = "state"
 
-// State manages terraform state
+// State manages the terraform state, providing methods to commit and push the state to
+// the remote repository
 type State struct {
 	fs   afero.Fs
 	path string
@@ -20,10 +21,12 @@ type State struct {
 	RepoURL string
 }
 
+// FilePathGlobal returns the terraform state file path for the global component.
 func (s *State) FilePathGlobal() string {
 	return filepath.Join(s.path, "global", "terraform.tfstate")
 }
 
+// FilePathUser returns the terraform state file path for a specified user component.
 func (s *State) FilePathUser(user string) string {
 	return filepath.Join(s.path, "user", user, "terraform.tfstate")
 }

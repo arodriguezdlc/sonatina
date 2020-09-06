@@ -41,7 +41,7 @@ func destroyExecution(command *cobra.Command, args []string) error {
 	}
 
 	destroy := workflow.Destroy(terraform, deploy)
-	if userComponent == "" { // TODO: check if is a valid user Component
+	if userComponent == "" {
 		err = destroy.RunGlobal(message)
 	} else {
 		err = destroy.RunUser(message, userComponent)

@@ -306,7 +306,6 @@ func Get(name string, storageRepoURL string, fs afero.Fs, deploymentPath string)
 func Clone(name string, storageRepoURL string, fs afero.Fs, deploymentPath string) error {
 	deploy := newDeploymentImpl(name, fs, deploymentPath)
 
-	// TODO: paralelize
 	err := deploy.cloneVars(storageRepoURL)
 	if err != nil {
 		deploy.rollbackInitialize()

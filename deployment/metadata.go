@@ -11,6 +11,8 @@ import (
 
 const metadataFileName string = "metadata.json"
 
+// Metadata struct is a model used for marshall/unmarshall the sonatina deployment
+// metadata to/from a json file, that it's saved on the variables branch of the storage repository.
 type Metadata struct {
 	fs       afero.Fs
 	filePath string
@@ -42,6 +44,8 @@ type userPlugin struct {
 	Name string `json:"name"`
 }
 
+// CreateGlobalPlugin adds to metadata a new plugin for the global component
+// XXX: this method isn't thread safe
 func (m *Metadata) CreateGlobalPlugin(name string, repo string, repoPath string, version string, commit string) error {
 	err := m.load()
 	if err != nil {
@@ -70,11 +74,17 @@ func (m *Metadata) CreateGlobalPlugin(name string, repo string, repoPath string,
 	return nil
 }
 
+// DeleteGlobalPlugin deletes the specified plugin from the
+// global component
+// XXX: this method isn't thread safe
 func (m *Metadata) DeleteGlobalPlugin(name string) error {
 	err := m.load()
 	if err != nil {
 		return err
 	}
+
+	// TODO: check if an user component has the plugin assigned. It can't be deleted
+	// until all user components have been deleted its plugin
 
 	index, err := m.getGlobalPluginIndex(name)
 	if err != nil {
@@ -91,6 +101,8 @@ func (m *Metadata) DeleteGlobalPlugin(name string) error {
 	return nil
 }
 
+// ListGlobalPlugins loads metadata and list plugins added to
+// the global component
 func (m *Metadata) ListGlobalPlugins() ([]string, error) {
 	err := m.load()
 	if err != nil {
@@ -100,6 +112,8 @@ func (m *Metadata) ListGlobalPlugins() ([]string, error) {
 	return m.listGlobalPlugins()
 }
 
+// CreateUserPlugin adds the specified plugin to the specified user component
+// XXX: this method isn't thread safe
 func (m *Metadata) CreateUserPlugin(name string, user string) error {
 	err := m.load()
 	if err != nil {
@@ -137,6 +151,9 @@ func (m *Metadata) CreateUserPlugin(name string, user string) error {
 	return nil
 }
 
+// DeleteUserPlugin deletes the specified plugin from the specified
+// user component
+// XXX: this method isn't thread safe
 func (m *Metadata) DeleteUserPlugin(name string, user string) error {
 	err := m.load()
 	if err != nil {
@@ -171,6 +188,8 @@ func (m *Metadata) DeleteUserPlugin(name string, user string) error {
 	return nil
 }
 
+// ListUserPlugins loads metadata and list plugins added to a
+// specified user
 func (m *Metadata) ListUserPlugins(user string) ([]string, error) {
 	err := m.load()
 	if err != nil {

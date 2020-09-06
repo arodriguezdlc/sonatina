@@ -27,15 +27,17 @@ func listDeploymentExecution(command *cobra.Command, args []string) error {
 	}
 
 	current, err := common.GetCurrentDeployment("")
-	if err == nil {
-		fmt.Fprintln(os.Stdout, "Current: "+current)
-	} else {
+	if err != nil {
 		logrus.WithError(err).Warning("couldn't get current deployment")
 	}
 
 	fmt.Fprintln(os.Stdout, "DEPLOYMENTS:")
 	for _, element := range list {
-		_, err = fmt.Fprintln(os.Stdout, element)
+		prefix := " - "
+		if element == current {
+			prefix = " * "
+		}
+		_, err = fmt.Fprintln(os.Stdout, prefix+element)
 		if err != nil {
 			return err
 		}
