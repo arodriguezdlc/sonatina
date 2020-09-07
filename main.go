@@ -16,9 +16,30 @@ limitations under the License.
 package main
 
 import (
+	"os/exec"
+
 	"github.com/arodriguezdlc/sonatina/cmd"
+	"github.com/sirupsen/logrus"
 )
 
+func sshAgentUnix() {
+	err := exec.Command("sh", "-c", "eval", "`ssh-agent`").Run()
+	if err != nil {
+		logrus.WithError(err).Warning("couldn't setup ssh-agent")
+		return
+	}
+
+	err = exec.Command("sh", "-c", "ssh-add").Run()
+	if err != nil {
+		logrus.WithError(err).Warning("couldn't setup ssh-add")
+		return
+	}
+}
+
 func main() {
+	// XXX: currently this function is necessary to enable ssh connections to git repositories.
+	// Only works on unix systems.
+	sshAgentUnix()
+
 	cmd.Execute()
 }
