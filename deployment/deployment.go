@@ -24,13 +24,20 @@ type Deployment interface {
 	DeletePluginUser(name string, user string) error
 	ListPluginsUser(user string) ([]string, error)
 
+	GetFlavourGlobal() (string, error)
+	SetFlavourGlobal(flavour string) error
+
+	GetFlavourUser(user string) (string, error)
+	SetFlavourUser(flavour string, user string) error
+
 	GenerateWorkdirGlobal() (string, error)
 	GenerateWorkdirUser(user string) (string, error)
 
 	GenerateVariablesGlobal() ([]string, error)
 	GenerateVariablesUser(user string) ([]string, error)
+
 	GetVariableFilepath(kind string, plugin string, user string) (string, error)
-	ReadVariableFilepath(kind string, plugin string, user string) (string, error)
+	ReadVariableFile(kind string, plugin string, user string) (string, error)
 
 	Push(message string) error
 	Pull() error
@@ -98,6 +105,7 @@ func (d *DeploymentImpl) ListUsercomponents() ([]string, error) {
 	return d.Vars.Metadata.ListUsercomponents()
 }
 
+// CreatePluginGlobal adds a plugin to the global component, cloning its repo.
 func (d *DeploymentImpl) CreatePluginGlobal(name string, repo string, repoPath string) error {
 	// TODO: version and commit
 	pluginPath := d.getPluginPath(name)
@@ -125,6 +133,8 @@ func (d *DeploymentImpl) CreatePluginGlobal(name string, repo string, repoPath s
 	return nil
 }
 
+// DeletePluginGlobal removes the plugin from the global component.
+// TODO: any usercomponent can't have the plugin installed, must be checked
 func (d *DeploymentImpl) DeletePluginGlobal(name string) error {
 	err := d.fs.RemoveAll(d.getPluginPath(name))
 	if err != nil {
@@ -134,20 +144,47 @@ func (d *DeploymentImpl) DeletePluginGlobal(name string) error {
 	return d.Vars.Metadata.DeleteGlobalPlugin(name)
 }
 
+// ListPluginsGlobal returns a list with the names of the plugins added
+// to the global component
 func (d *DeploymentImpl) ListPluginsGlobal() ([]string, error) {
 	return d.Vars.Metadata.ListGlobalPlugins()
 }
 
+// CreatePluginUser adds a plugin to the user component. Plugin must have been
+// added to de global component
 func (d *DeploymentImpl) CreatePluginUser(name string, user string) error {
 	return d.Vars.Metadata.CreateUserPlugin(name, user)
 }
 
+// DeletePluginUser removes the plugin from the specified user component
 func (d *DeploymentImpl) DeletePluginUser(name string, user string) error {
 	return d.Vars.Metadata.DeleteUserPlugin(name, user)
 }
 
+// ListPluginsUser returns a list with the names of the plugins added to
+// the specified user component
 func (d *DeploymentImpl) ListPluginsUser(user string) ([]string, error) {
 	return d.Vars.Metadata.listUserPlugins(user)
+}
+
+// GetFlavourGlobal returns the name of the configured flavour for the global component
+func (d *DeploymentImpl) GetFlavourGlobal() (string, error) {
+	return d.Vars.Metadata.GetGlobalFlavour()
+}
+
+// SetFlavourGlobal configures the flavour for the global component
+func (d *DeploymentImpl) SetFlavourGlobal(flavour string) error {
+	return d.Vars.Metadata.SetGlobalFlavour(flavour)
+}
+
+// GetFlavourUser returns the name of the configured flavour for the specified user component
+func (d *DeploymentImpl) GetFlavourUser(user string) (string, error) {
+	return d.Vars.Metadata.GetUserFlavour(user)
+}
+
+// SetFlavourUser configures the flavour for the specified user component
+func (d *DeploymentImpl) SetFlavourUser(flavour string, user string) error {
+	return d.Vars.Metadata.SetUserFlavour(flavour, user)
 }
 
 // GenerateWorkdirGlobal combines deployment CTDs (main and plugins) to generate
@@ -179,19 +216,33 @@ func (d *DeploymentImpl) GenerateWorkdirUser(user string) (string, error) {
 	return d.Workdir.mainUserPath(user), nil
 }
 
+// GenerateVariablesGlobal reads the variable files from the VTDs for the global component,
+// and copy them to the storage repository. Also returns a list with the filepaths and the order
+// that must be used when passing the variables to Terraform.
 func (d *DeploymentImpl) GenerateVariablesGlobal() ([]string, error) {
 	return d.Vars.GenerateGlobal()
 }
 
+// GenerateVariablesUser reads the variable files from the VTDs for the specified user component,
+// and copy them to the storage repository. Also returns a list with the filepaths and the order
+// that must be used when passing the variables to Terraform.
 func (d *DeploymentImpl) GenerateVariablesUser(user string) ([]string, error) {
 	return d.Vars.GenerateUser(user)
 }
 
+// GetVariableFilepath returns the path where is the variable file copied to the storage repository
+// for an specified kind (config, flavour or static), plugin and user component.
+// Use empty string ("") on plugin parameter to obtain the base variable file and also on the
+// user parameter, to obtain the global component variable file.
 func (d *DeploymentImpl) GetVariableFilepath(kind string, plugin string, user string) (string, error) {
 	return d.Vars.GetVariableFilepath(kind, plugin, user)
 }
 
-func (d *DeploymentImpl) ReadVariableFilepath(kind string, plugin string, user string) (string, error) {
+// ReadVariableFile returns the content of the variable file copied to the storage repository
+// for an specified kind (config, flavour or static), plugin and user component.
+// Use empty string ("") on plugin parameter to obtain the base variable file and also on the
+// user parameter, to obtain the global component variable file.
+func (d *DeploymentImpl) ReadVariableFile(kind string, plugin string, user string) (string, error) {
 	filepath, err := d.GetVariableFilepath(kind, plugin, user)
 	if err != nil {
 		return "", err

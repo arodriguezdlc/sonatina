@@ -62,10 +62,12 @@ func init() {
 	rootCmd.AddCommand(operation.Create)
 	rootCmd.AddCommand(operation.Delete)
 	rootCmd.AddCommand(operation.Destroy)
+	rootCmd.AddCommand(operation.Edit)
+	rootCmd.AddCommand(operation.Get)
 	rootCmd.AddCommand(operation.Init)
 	rootCmd.AddCommand(operation.List)
 	rootCmd.AddCommand(operation.Refresh)
-	rootCmd.AddCommand(operation.Edit)
+	rootCmd.AddCommand(operation.Set)
 	rootCmd.AddCommand(operation.Show)
 	rootCmd.AddCommand(operation.Use)
 }

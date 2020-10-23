@@ -161,6 +161,9 @@ func (m *Metadata) DeleteUserPlugin(name string, user string) error {
 	}
 
 	ok, err := m.checkUsercomponent(user)
+	if err != nil {
+		return err
+	}
 	if !ok {
 		return errors.Errorf("user component %s doesn't exist", user)
 	}
@@ -260,6 +263,80 @@ func (m *Metadata) CheckUsercomponent(user string) (bool, error) {
 	}
 
 	return m.checkUsercomponent(user)
+}
+
+// GetGlobalFlavour returns the Flavour attribute from Metadata
+func (m *Metadata) GetGlobalFlavour() (string, error) {
+	err := m.load()
+	if err != nil {
+		return "", err
+	}
+
+	return m.Flavour, nil
+}
+
+// SetGlobalFlavour saves the value of given Flavour attribute on Metadata
+// XXX: this method isn't thread safe
+func (m *Metadata) SetGlobalFlavour(flavour string) error {
+	err := m.load()
+	if err != nil {
+		return err
+	}
+
+	// TODO: check if flavour is defined or its valid.
+	m.Flavour = flavour
+
+	err = m.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetUserFlavour returns the Flavour attribute from Metadata for an specified user.
+func (m *Metadata) GetUserFlavour(user string) (string, error) {
+	err := m.load()
+	if err != nil {
+		return "", err
+	}
+
+	ok, err := m.checkUsercomponent(user)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", errors.Errorf("user component %s doesn't exist", user)
+	}
+
+	return m.UserComponents[user].Flavour, nil
+}
+
+// SetUserFlavour saves the value of given Flavour attribute on Metadata for an specified user.
+// XXX: this method isn't thread safe
+func (m *Metadata) SetUserFlavour(flavour string, user string) error {
+	err := m.load()
+	if err != nil {
+		return err
+	}
+
+	ok, err := m.checkUsercomponent(user)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.Errorf("user component %s doesn't exist", user)
+	}
+
+	userComponent := m.UserComponents[user]
+	userComponent.Flavour = flavour
+
+	err = m.save()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newMetadata(fs afero.Fs, varsPath string) *Metadata {

@@ -37,7 +37,7 @@ func showExecution(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	content, err := deploy.ReadVariableFilepath(kind, pluginName, userComponent)
+	content, err := deploy.ReadVariableFile(kind, pluginName, userComponent)
 	if err != nil {
 		return err
 	}
