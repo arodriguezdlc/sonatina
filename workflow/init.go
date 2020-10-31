@@ -23,6 +23,11 @@ func (i *InitWorkflow) RunGlobal() error {
 		return err
 	}
 
+	_, err = i.Deployment.GenerateVariablesGlobal()
+	if err != nil {
+		return err
+	}
+
 	err = i.Terraform.Init(executionPath)
 	if err != nil {
 		return err
@@ -33,6 +38,11 @@ func (i *InitWorkflow) RunGlobal() error {
 
 func (i *InitWorkflow) RunUser(user string) error {
 	executionPath, err := i.Deployment.GenerateWorkdirUser(user)
+	if err != nil {
+		return err
+	}
+
+	_, err = i.Deployment.GenerateVariablesUser(user)
 	if err != nil {
 		return err
 	}

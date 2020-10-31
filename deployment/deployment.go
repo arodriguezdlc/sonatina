@@ -491,3 +491,13 @@ func (d *DeploymentImpl) cloneDeploymentCTDs() error {
 func (d *DeploymentImpl) getPluginPath(name string) string {
 	return filepath.Join(d.path, "code", "plugins", name)
 }
+
+func (d *DeploymentImpl) getPluginByName(name string) (*CTD, error) {
+	for _, plugin := range d.Plugins {
+		if plugin.Name == name {
+			return plugin, nil
+		}
+	}
+
+	return nil, errors.Errorf("couldn't find plugin with name %s", name)
+}

@@ -108,7 +108,7 @@ func (w *Workdir) copyMainGlobal() error {
 }
 
 func (w *Workdir) copyMainUser(user string) error {
-	fileList, err := w.calculateMainUserFileList()
+	fileList, err := w.calculateMainUserFileList(user)
 	if err != nil {
 		return err
 	}
@@ -223,13 +223,23 @@ func (w *Workdir) calculateMainGlobalFileList() ([]string, error) {
 	return files, nil
 }
 
-func (w *Workdir) calculateMainUserFileList() ([]string, error) {
+func (w *Workdir) calculateMainUserFileList(user string) ([]string, error) {
 	files, err := w.deployment.Base.ListMainUserFiles()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, plugin := range w.deployment.Plugins {
+	pluginList, err := w.deployment.Vars.Metadata.listUserPlugins(user)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pluginName := range pluginList {
+		plugin, err := w.deployment.getPluginByName(pluginName)
+		if err != nil {
+			return nil, err
+		}
+
 		pluginFiles, err := plugin.ListMainUserFiles()
 		if err != nil {
 			return nil, err

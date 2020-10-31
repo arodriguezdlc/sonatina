@@ -148,9 +148,21 @@ func TestGenerateUserWithOverride(t *testing.T) {
 func testNewWorkdir(fs afero.Fs) (*Workdir, error) {
 
 	base := NewCTD(fs, filepath.Join("deployment", "base"), "", "", "")
-	plugin1 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin1"), "", "", "")
-	plugin2 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin2"), "", "", "")
-
+	plugin1 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin1"), "plugin1", "", "")
+	plugin2 := NewCTD(fs, filepath.Join("deployment", "plugins", "plugin2"), "plugin2", "", "")
+	userComponents := make(map[string]userComponent)
+	userComponents["user1"] = userComponent{
+		Plugins: []userPlugin{{Name: "plugin1"}, {Name: "plugin2"}},
+	}
+	userComponents["user2"] = userComponent{
+		Plugins: []userPlugin{{Name: "plugin1"}, {Name: "plugin2"}},
+	}
+	metadata := &Metadata{
+		UserComponents: userComponents,
+	}
+	vars := &Vars{
+		Metadata: metadata,
+	}
 	deploy := &DeploymentImpl{
 		Name: "deployment",
 		fs:   fs,
@@ -158,6 +170,7 @@ func testNewWorkdir(fs afero.Fs) (*Workdir, error) {
 
 		Base:    base,
 		Plugins: []*CTD{plugin1, plugin2},
+		Vars:    vars,
 	}
 
 	err := deploy.newWorkdir()

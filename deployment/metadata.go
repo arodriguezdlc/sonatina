@@ -330,6 +330,7 @@ func (m *Metadata) SetUserFlavour(flavour string, user string) error {
 
 	userComponent := m.UserComponents[user]
 	userComponent.Flavour = flavour
+	m.UserComponents[user] = userComponent
 
 	err = m.save()
 	if err != nil {
