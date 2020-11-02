@@ -2,6 +2,7 @@ package operation
 
 import (
 	"github.com/arodriguezdlc/sonatina/cmd/deploymentcmd"
+	"github.com/arodriguezdlc/sonatina/cmd/plugin"
 	"github.com/arodriguezdlc/sonatina/cmd/usercomponent"
 	"github.com/spf13/cobra"
 )
@@ -17,4 +18,5 @@ var List = &cobra.Command{
 func init() {
 	List.AddCommand(deploymentcmd.ListDeployment)
 	List.AddCommand(usercomponent.ListUsercomponents)
+	List.AddCommand(plugin.ListPlugins)
 }

@@ -199,6 +199,14 @@ func (m *Metadata) ListUserPlugins(user string) ([]string, error) {
 		return []string{}, err
 	}
 
+	ok, err := m.checkUsercomponent(user)
+	if err != nil {
+		return []string{}, err
+	}
+	if !ok {
+		return []string{}, errors.Errorf("user component %s doesn't exist", user)
+	}
+
 	return m.listUserPlugins(user)
 }
 

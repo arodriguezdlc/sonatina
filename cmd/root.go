@@ -42,7 +42,9 @@ func Execute() {
 	if err != nil {
 		st, ok := err.(stackTracer)
 		if ok {
-			fmt.Printf("%+v\n\n", st)
+			if viper.GetBool("EnableStacktrace") {
+				fmt.Printf("%+v\n\n", st)
+			}
 			logrus.Fatalf("%v", st)
 		} else {
 			logrus.Fatalf("%v", err)

@@ -164,7 +164,7 @@ func (d *DeploymentImpl) DeletePluginUser(name string, user string) error {
 // ListPluginsUser returns a list with the names of the plugins added to
 // the specified user component
 func (d *DeploymentImpl) ListPluginsUser(user string) ([]string, error) {
-	return d.Vars.Metadata.listUserPlugins(user)
+	return d.Vars.Metadata.ListUserPlugins(user)
 }
 
 // GetFlavourGlobal returns the name of the configured flavour for the global component

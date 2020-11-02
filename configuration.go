@@ -16,12 +16,13 @@ func init() {
 func setDefaultConfig() {
 	viper.SetDefault("LogLevel", "debug")
 	viper.SetDefault("LogFile", "~/.sonatina/sonatina.log")
+	viper.SetDefault("EnableStacktrace", false)
 	viper.SetDefault("DeploymentsPath", "~/.sonatina/deployments")
 	viper.SetDefault("DeploymentsFilename", "deployments.json")
 	viper.SetDefault("ManagerConnector", "json")
 	viper.SetDefault("TestFilesystem", false)
 	viper.SetDefault("TerraformPath", "~/.sonatina/terraform")
-	viper.SetDefault("DefaultTerraformVersion", "0.12.24")
+	viper.SetDefault("DefaultTerraformVersion", "0.13.5")
 	viper.SetDefault("DefaultFlavour", "default")
 	viper.SetDefault("Editor", "vi")
 }
