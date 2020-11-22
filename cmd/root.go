@@ -25,14 +25,9 @@ type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
-// rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "sonatina",
-	Short: "A terraform based framework",
-	Long:  `TO DO`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Short: "A terraform based framework to work in an opinionated way.",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

@@ -11,8 +11,7 @@ import (
 // Refresh declares `sonatina refresh` command
 var Refresh = &cobra.Command{
 	Use:   "refresh",
-	Short: "",
-	Long:  "",
+	Short: "Retrieve last changes from git repositories",
 	RunE:  refreshExecution,
 }
 

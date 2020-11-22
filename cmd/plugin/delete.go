@@ -12,8 +12,7 @@ import (
 // DeletePlugin declares `sonatina delete plugin` command
 var DeletePlugin = &cobra.Command{
 	Use:   "plugin",
-	Short: "delete plugin",
-	Long:  `delete plugin`,
+	Short: "Remove a specified plugin from deployment",
 	Args:  cobra.ExactArgs(1),
 	RunE:  deletePluginExecution,
 }

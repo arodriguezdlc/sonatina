@@ -11,8 +11,7 @@ import (
 // DeleteDeployment declares `sonatina delete deployment` command
 var DeleteDeployment = &cobra.Command{
 	Use:   "deployment",
-	Short: "delete deployment",
-	Long:  `delete deployment`,
+	Short: "Delete a specified deployment from local",
 	Args:  cobra.ExactArgs(1),
 	RunE:  deleteDeploymentExecution,
 }

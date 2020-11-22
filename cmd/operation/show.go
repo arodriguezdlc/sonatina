@@ -11,8 +11,7 @@ import (
 // Show declares `sonatina show` command
 var Show = &cobra.Command{
 	Use:   "show",
-	Short: "",
-	Long:  "",
+	Short: "Print a specified variable file",
 	Args:  cobra.ExactArgs(1),
 	RunE:  showExecution,
 }

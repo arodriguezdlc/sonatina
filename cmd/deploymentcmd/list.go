@@ -13,8 +13,7 @@ import (
 // ListDeployment declares `sonatina list deployments` command
 var ListDeployment = &cobra.Command{
 	Use:   "deployments",
-	Short: "list deployments managed by sonatina",
-	Long:  `TO DO`,
+	Short: "List deployments managed by sonatina",
 	RunE:  listDeploymentExecution,
 }
 

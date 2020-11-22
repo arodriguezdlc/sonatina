@@ -11,8 +11,7 @@ import (
 // GetFlavour declares `sonatina get flavour` command
 var GetFlavour = &cobra.Command{
 	Use:   "flavour",
-	Short: "",
-	Long:  "",
+	Short: "Obtain the configured flavour",
 	RunE:  getFlavourExecution,
 }
 

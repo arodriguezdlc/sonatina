@@ -10,8 +10,7 @@ import (
 // Delete declares `sonatina delete` command
 var Delete = &cobra.Command{
 	Use:   "delete",
-	Short: "delete",
-	Long:  "delete",
+	Short: "Remove a resource",
 }
 
 func init() {

@@ -13,8 +13,7 @@ import (
 // CreateDeployment declares `sonatina create deployment` command
 var CreateDeployment = &cobra.Command{
 	Use:   "deployment",
-	Short: "create deployment",
-	Long:  `create deployment`,
+	Short: "Create a new deployment",
 	Args:  cobra.ExactArgs(1),
 	RunE:  createDeploymentExecution,
 }

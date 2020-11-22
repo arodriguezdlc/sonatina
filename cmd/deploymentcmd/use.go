@@ -12,8 +12,7 @@ import (
 // UseDeployment declares `sonatina use deployment` command
 var UseDeployment = &cobra.Command{
 	Use:   "deployment",
-	Short: "use deployment",
-	Long:  `use deployment`,
+	Short: "Configure a default deployment to do operations",
 	Args:  cobra.ExactArgs(1),
 	RunE:  useDeploymentExecution,
 }

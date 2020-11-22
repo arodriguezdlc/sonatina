@@ -13,8 +13,7 @@ import (
 // ListUsercomponents declares `sonatina list usercomponent` command
 var ListUsercomponents = &cobra.Command{
 	Use:   "usercomponents",
-	Short: "list usercomponents",
-	Long:  `list usercomponents`,
+	Short: "List the deployment user components",
 	RunE:  listUsercomponentsExecution,
 }
 

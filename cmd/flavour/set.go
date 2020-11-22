@@ -11,8 +11,7 @@ import (
 // SetFlavour declares `sonatina set flavour` command
 var SetFlavour = &cobra.Command{
 	Use:   "flavour",
-	Short: "",
-	Long:  "",
+	Short: "Configure a specified flavour",
 	Args:  cobra.ExactArgs(1),
 	RunE:  setFlavourExecution,
 }

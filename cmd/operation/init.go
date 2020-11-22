@@ -10,8 +10,7 @@ import (
 // Init declares `sonatina init` command
 var Init = &cobra.Command{
 	Use:   "init",
-	Short: "",
-	Long:  "",
+	Short: "Initialize a working directory",
 	RunE:  initExecution,
 }
 

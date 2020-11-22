@@ -10,8 +10,7 @@ import (
 // Destroy declares `sonatina destroy` command
 var Destroy = &cobra.Command{
 	Use:   "destroy",
-	Short: "",
-	Long:  "",
+	Short: "Destroy sonatina-managed infrastructure",
 	Args:  cobra.ExactArgs(1),
 	RunE:  destroyExecution,
 }

@@ -13,8 +13,7 @@ import (
 // CreatePlugin declares `sonatina create plugin` command
 var CreatePlugin = &cobra.Command{
 	Use:   "plugin",
-	Short: "create plugin",
-	Long:  `create plugin`,
+	Short: "Create or add a plugin to deployment",
 	Args:  cobra.ExactArgs(1),
 	RunE:  createPluginExecution,
 }

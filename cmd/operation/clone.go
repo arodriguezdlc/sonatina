@@ -8,8 +8,7 @@ import (
 // Clone declares `sonatina clone` command
 var Clone = &cobra.Command{
 	Use:   "clone",
-	Short: "",
-	Long:  "",
+	Short: "Get resources from git",
 }
 
 func init() {

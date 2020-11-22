@@ -14,8 +14,7 @@ import (
 // Edit declares `sonatina edit` command
 var Edit = &cobra.Command{
 	Use:   "edit",
-	Short: "",
-	Long:  "",
+	Short: "Open an editor for config variables",
 	RunE:  editExecution,
 }
 

@@ -13,8 +13,7 @@ import (
 // ListPlugins declares `sonatina list plugins` command
 var ListPlugins = &cobra.Command{
 	Use:   "plugins",
-	Short: "list plugins",
-	Long:  `list plugins`,
+	Short: "List plugins added to deployment",
 	RunE:  listPluginsExecution,
 }
 

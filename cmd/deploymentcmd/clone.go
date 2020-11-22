@@ -12,8 +12,7 @@ import (
 // CloneDeployment declares `sonatina clone deployment` command
 var CloneDeployment = &cobra.Command{
 	Use:   "deployment",
-	Short: "clone deployment",
-	Long:  `clone deployment`,
+	Short: "Get a deployment from state repository",
 	Args:  cobra.ExactArgs(1),
 	RunE:  cloneDeploymentExecution,
 }

@@ -10,9 +10,7 @@ import (
 // List declares `sonatina list` command
 var List = &cobra.Command{
 	Use:   "list",
-	Short: "list",
-	Long:  "list",
-	//Run:   util.Help,
+	Short: "List a set of resources",
 }
 
 func init() {

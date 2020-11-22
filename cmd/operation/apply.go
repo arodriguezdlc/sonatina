@@ -10,8 +10,7 @@ import (
 // Apply declares `sonatina apply` command
 var Apply = &cobra.Command{
 	Use:   "apply",
-	Short: "",
-	Long:  "",
+	Short: "Builds or changes infrastructure",
 	Args:  cobra.ExactArgs(1),
 	RunE:  applyExecution,
 }

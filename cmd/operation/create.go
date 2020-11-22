@@ -10,8 +10,7 @@ import (
 // Create declares `sonatina create` command
 var Create = &cobra.Command{
 	Use:   "create",
-	Short: "",
-	Long:  "",
+	Short: "Generate a new resource",
 }
 
 func init() {

@@ -12,8 +12,7 @@ import (
 // CreateUsercomponent declares `sonatina create usercomponent` command
 var DeleteUsercomponent = &cobra.Command{
 	Use:   "usercomponent",
-	Short: "delete usercomponent",
-	Long:  `delete usercomponent`,
+	Short: "Remove an usercomponent from deployment",
 	Args:  cobra.ExactArgs(1),
 	RunE:  deleteUsercomponentExecution,
 }

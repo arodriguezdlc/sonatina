@@ -8,8 +8,7 @@ import (
 // Set declares `sonatina set` command
 var Set = &cobra.Command{
 	Use:   "set",
-	Short: "",
-	Long:  "",
+	Short: "Modify a resource attribute",
 }
 
 func init() {

@@ -8,8 +8,7 @@ import (
 // Use declares `sonatina use` command
 var Use = &cobra.Command{
 	Use:   "use",
-	Short: "",
-	Long:  "",
+	Short: "Configure a default deployment to do operations",
 }
 
 func init() {

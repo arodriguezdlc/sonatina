@@ -12,8 +12,7 @@ import (
 // CreateUsercomponent declares `sonatina create usercomponent` command
 var CreateUsercomponent = &cobra.Command{
 	Use:   "usercomponent",
-	Short: "create usercomponent",
-	Long:  `create usercomponent`,
+	Short: "Add an user component to deployment",
 	Args:  cobra.ExactArgs(1),
 	RunE:  createUsercomponentExecution,
 }
