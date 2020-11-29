@@ -15,7 +15,33 @@ Warning: private repository are not supported yet, but it will very soon.
 
 ##  Concepts
 
-TODO
+- **Code Tree Definition (CTD)**: file and directory structure of HCL code standarized by
+  Sonatina. It allows combination with other CTDs to enable the addition of plugins.
+- **Variables Tree Definition (VTD)**: variable file structure that allows the identification of
+  them by kind, enabling priorization.
+- **Deployment**: concrete infrastructure to be managed based on the code defined on CTDs.
+- **Modules**: are the [Terraform modules](https://www.terraform.io/docs/modules/index.html) that
+  describes the infraestructure. 
+- **Code repository**: GIT repository where the code that defines the infrastructure is stored.
+- **State repository**: GIT repositiory where state and variables of a specified deployment 
+  are stored.
+- **Workdir**: temporal folder where Sonatina merges all CTDs that will be applied before passing
+  them to Terraform.
+- **Variables**: terraform variables for the infrastructure. In Sonatina, three kind of
+  variables are defined: config, flavour and static. 
+  Config variables can be customized for each deployment. 
+  Flavour variables defines the size of the infrastructure components. Static variables are linked
+  to the infrastructure version, and tipically defines the software version to be used.
+- **State**: file that registers the current state of Terraform managed infrastructure. Each
+  component (global or user component) will have its own state file.
+- **User component**: set of resources that are deployed specifically for an user. Multiple of
+  them can be created on each deployment. The resources that doesn't belong to a specified user
+  are part of the global component.
+- **Flavour**: identifies a set of variables that will be used on the deployment. Usually this
+  set are used to define de infrastructure size, allowing the use of flavours with more or less
+  resources.
+- **Plugins**: are CTDs that, combined with the base code CTD, can increment or modify the
+  infrastructure features.
 
 ## Getting Started
 
@@ -33,25 +59,26 @@ cd sonatina
 go build 
 ```
 
-As result, you will have a sonatina binary ready to work. Optionally, you can move it to a directory in your `$PATH`:
+As result, you will have a sonatina binary ready to work. Optionally, you can move it to a
+directory in your `$PATH`:
 ```
 mv sonatina /usr/local/bin/
 ```
 
 ### Create your first deployment
 
-Sonatina stores deployment state, variables and metadata on a git repository. For this example we are going to create a local repository,
-but you also could create one on [github](https://github.com/new) for example. 
-Let's assume we hace created this repo: https://github.com/arodriguezdlc/sonatina-example-local-docker-storage.git
-
+Sonatina stores deployment state, variables and metadata on a git repository. For this example we
+are going to create a local repository, but you also could create one on
+[github](https://github.com/new) for example.
+Let's assume we hace created this repo:
+https://github.com/arodriguezdlc/sonatina-example-local-docker-storage.git
 
 Also we need a repository with the Terraform code we are going to deploy. 
-We are going to use [an example repository](https://github.com/arodriguezdlc/sonatina-example-local-docker) to deploy a local Docker with a web server. 
-
+We are going to use [an example repository](https://github.com/arodriguezdlc/sonatina-hello-world)
 
 Finally, we can create the deployment with the following sonatina command:
 ```sh
-sonatina create deployment example-local-docker -s https://github.com/arodriguezdlc/sonatina-example-local-docker.git -c https://github.com/arodriguezdlc/sonatina-example-local-docker.git
+sonatina create deployment example-local-docker -s https://github.com/arodriguezdlc/sonatina-example-local-docker-state.git -c https://github.com/arodriguezdlc/sonatina-example-local-docker.git
 ```
 
 You can see the created deployment with:
@@ -89,10 +116,6 @@ And finally, apply changes:
 sonatina apply -c my-special-client
 ```
 
-### Adding a plugin
-
-TODO
-
 ### Cleanup
 
 To perform the undeploy, you simply have to execute a sonatina destroy command:
@@ -106,5 +129,3 @@ the storage repository, so you recover by cloning it.
 ```sh
 sonantina delete deployment example-local-docker
 ```
- 
-## Contributing
