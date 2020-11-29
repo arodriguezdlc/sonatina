@@ -18,11 +18,6 @@ func Init(terraform *terraformcli.Terraform, deployment deployment.Deployment) *
 }
 
 func (i *InitWorkflow) RunGlobal() error {
-	err := i.Deployment.Pull()
-	if err != nil {
-		return err
-	}
-
 	executionPath, err := i.Deployment.GenerateWorkdirGlobal()
 	if err != nil {
 		return err
@@ -42,11 +37,6 @@ func (i *InitWorkflow) RunGlobal() error {
 }
 
 func (i *InitWorkflow) RunUser(user string) error {
-	err := i.Deployment.Pull()
-	if err != nil {
-		return err
-	}
-
 	executionPath, err := i.Deployment.GenerateWorkdirUser(user)
 	if err != nil {
 		return err

@@ -409,6 +409,12 @@ func Create(name string, storageRepoURL string, codeRepoURL string, codeRepoPath
 		return err
 	}
 
+	err = deploy.Push("Initial commit")
+	if err != nil {
+		deploy.rollbackInitialize()
+		return err
+	}
+
 	err = deploy.newDeploymentCTDs()
 	if err != nil {
 		deploy.rollbackInitialize()

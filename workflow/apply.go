@@ -18,11 +18,6 @@ func Apply(terraform *terraformcli.Terraform, deployment deployment.Deployment) 
 }
 
 func (i *ApplyWorkflow) RunGlobal(message string) error {
-	err := i.Deployment.Pull()
-	if err != nil {
-		return err
-	}
-
 	executionPath, err := i.Deployment.GenerateWorkdirGlobal()
 	if err != nil {
 		return err
@@ -54,11 +49,6 @@ func (i *ApplyWorkflow) RunGlobal(message string) error {
 }
 
 func (i *ApplyWorkflow) RunUser(message string, user string) error {
-	err := i.Deployment.Pull()
-	if err != nil {
-		return err
-	}
-
 	executionPath, err := i.Deployment.GenerateWorkdirUser(user)
 	if err != nil {
 		return err

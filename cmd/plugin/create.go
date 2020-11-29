@@ -21,7 +21,7 @@ var CreatePlugin = &cobra.Command{
 func init() {
 	CreatePlugin.Flags().StringVarP(&deployName, "deployment", "d", "", "deployment name")
 	CreatePlugin.Flags().StringVarP(&repoURI, "repo-uri", "r", "", "plugin git repo uri")
-	CreatePlugin.Flags().StringVarP(&repoPath, "code-repo-path", "p", "", "code git repo path")
+	CreatePlugin.Flags().StringVarP(&repoPath, "repo-path", "p", "", "plugin git repo path")
 	CreatePlugin.Flags().StringVarP(&userComponent, "user-component", "c", "", "user component name")
 }
 
